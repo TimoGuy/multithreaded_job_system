@@ -184,6 +184,7 @@ void JobManager::cookPendingGroup()
         exec_jobgroup.current_jobspan_idx = 0;
 
         // Order joblist into jobspans.
+        // @TODO: start here!!!!
 
         // Add to total count.
         total_jobs += joblist.size();
