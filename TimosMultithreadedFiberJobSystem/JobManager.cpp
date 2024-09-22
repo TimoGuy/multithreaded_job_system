@@ -98,9 +98,9 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
         //        so that there could be less incrementing and fighting.
         for (uint8_t group_idx = 0; group_idx < m_executing_queue.groups.size(); group_idx++)
         {
-            auto* group = &m_executing_queue.groups[group_idx];
-            size_t jobspan_idx = group->current_jobspan_idx;  // Capture so it's immutable from another thread.
-            auto* jobspan = &group->jobspans[jobspan_idx];
+            auto& group{ m_executing_queue.groups[group_idx] };
+            size_t jobspan_idx{ group.current_jobspan_idx };  // Capture so it's immutable from another thread.
+            auto& jobspan{ group.jobspans[jobspan_idx] };
 
             // This is what's happening in the line below:
             //   Step 1: Decrement atomic unreserved jobs, then get the result.
@@ -111,8 +111,8 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
             //           successful job reservation.
             // @NOTE: this job reservation system allows us to not need a mutex
             //        or any sync struct to manage access to the current jobspan.
-            size_t attempt_to_reserve_idx = --jobspan->remaining_unreserved_jobs;
-            if (attempt_to_reserve_idx < jobspan->jobs.size())
+            size_t attempt_to_reserve_idx{ --jobspan.remaining_unreserved_jobs };
+            if (attempt_to_reserve_idx < jobspan.jobs.size())
             {
                 // Successfully was able to reserve a job!
                 out_job_group_idx = group_idx;
@@ -132,7 +132,7 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
                 // the program thinking it was able to successfully reserve
                 // a job.
                 ret = FetchResult_e::RESULT_BUSY;
-                jobspan->remaining_unreserved_jobs = 0;
+                jobspan.remaining_unreserved_jobs = 0;
             }
         }
     }
@@ -147,10 +147,10 @@ void JobManager::reportJobFinishExecuting(
 {
     (void)job_idx;  // @TODO: maybe remove this as an arg?
 
-    auto* group = &m_executing_queue.groups[job_group_idx];
-    auto* jobspan = &group->jobspans[jobspan_idx];
+    auto& group{ m_executing_queue.groups[job_group_idx] };
+    auto& jobspan{ group.jobspans[jobspan_idx] };
 
-    size_t remaining_jobs = --jobspan->remaining_unfinished_jobs;
+    size_t remaining_jobs{ --jobspan.remaining_unfinished_jobs };
     if (remaining_jobs == 0)
     {
         // Move to the next span.
@@ -158,7 +158,7 @@ void JobManager::reportJobFinishExecuting(
         //        atomic counter, if the jobspan is incremented to be out
         //        of range, then the jobspan index is actually never used,
         //        so no errors!
-        group->current_jobspan_idx++;
+        group.current_jobspan_idx++;
     }
 
     m_executing_queue.remaining_unfinished_jobs--;  // @NOTE: update very last.
@@ -176,15 +176,15 @@ void JobManager::movePendingJobsIntoExecQueue()
 
     for (uint8_t group_idx = 0; group_idx < JobGroup_e::NUM_JOB_GROUPS; group_idx++)
     {
-        auto* exec_jobgroup{ &m_executing_queue.groups[group_idx] };
+        auto& exec_jobgroup{ m_executing_queue.groups[group_idx] };
         auto& joblist{ m_pending_joblists[group_idx] };
 
         // Add to total count.
         total_jobs += joblist.size();
 
         // Reset jobgroup.
-        exec_jobgroup->jobspans.clear();
-        exec_jobgroup->current_jobspan_idx = 0;
+        exec_jobgroup.jobspans.clear();
+        exec_jobgroup.current_jobspan_idx = 0;
 
         // Order joblist into jobspans.
         std::map<order_t, std::vector<Job*>> ordered_joblist;
@@ -203,7 +203,8 @@ void JobManager::movePendingJobsIntoExecQueue()
                 .remaining_unreserved_jobs{ total_jobs },
                 .remaining_unfinished_jobs{ total_jobs },
             };
-            exec_jobgroup->jobspans.push_back(new_jobspan);
+            // @TODO: figure this error out!!!!!!
+            exec_jobgroup.jobspans.emplace(std::move(span), total_jobs, total_jobs);
         }
 
         // Cleanup.
