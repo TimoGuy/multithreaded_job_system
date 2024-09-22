@@ -38,7 +38,7 @@ private:
         size_t jobspan_idx,
         size_t job_idx);
 
-    void cookPendingGroup();
+    void movePendingJobsIntoExecQueue();
 
     struct JobGroup
     {
@@ -62,7 +62,7 @@ private:
         std::atomic_size_t remaining_unreserved_jobs;
         std::atomic_size_t remaining_unfinished_jobs;
     } m_executing_queue;
-    std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_jobs;
+    std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
 
     std::mutex m_handle_job_switch_mutex;
     std::function<void()> m_on_empty_jobs_fn;
