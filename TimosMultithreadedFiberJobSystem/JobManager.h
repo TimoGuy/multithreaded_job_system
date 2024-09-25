@@ -44,6 +44,20 @@ private:
     {
         struct JobSpan
         {
+            JobSpan(std::vector<Job*>&& jobs, std::size_t total_jobs)
+                : jobs(std::move(jobs))
+                , remaining_unreserved_jobs(total_jobs)
+                , remaining_unfinished_jobs(total_jobs)
+            {
+            }
+
+            JobSpan(JobSpan&& other) noexcept
+                : jobs(std::move(other.jobs))
+                , remaining_unreserved_jobs(static_cast<size_t>(other.remaining_unreserved_jobs))
+                , remaining_unfinished_jobs(static_cast<size_t>(other.remaining_unfinished_jobs))
+            {
+            }
+
             std::vector<Job*> jobs;
             std::atomic_size_t remaining_unreserved_jobs;
             std::atomic_size_t remaining_unfinished_jobs;

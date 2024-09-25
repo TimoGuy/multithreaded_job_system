@@ -194,17 +194,14 @@ void JobManager::movePendingJobsIntoExecQueue()
         }
 
         // Create jobspans.
+        exec_jobgroup.jobspans.reserve(ordered_joblist.size());
         for (auto it = ordered_joblist.begin(); it != ordered_joblist.end(); it++)
         {
-            auto& span{ it->second };
-            size_t total_jobs{ span.size() };
             JobGroup::JobSpan new_jobspan{
-                .jobs{ std::move(span) },
-                .remaining_unreserved_jobs{ total_jobs },
-                .remaining_unfinished_jobs{ total_jobs },
+                std::move(it->second),
+                it->second.size()
             };
-            // @TODO: figure this error out!!!!!!
-            exec_jobgroup.jobspans.emplace(std::move(span), total_jobs, total_jobs);
+            exec_jobgroup.jobspans.emplace_back(std::move(new_jobspan));
         }
 
         // Cleanup.

@@ -16,5 +16,5 @@ std::string&& Job::toString()
     std::stringstream sstr;
     sstr << "Job " << m_job_id << ":\tname=\"" << m_name
         << "\"\tgroup=" << job_group_to_str[m_group] << "\torder=" << m_order;
-    return sstr.str();
+    return std::move(sstr.str());
 }
