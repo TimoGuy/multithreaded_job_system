@@ -11,7 +11,7 @@ Job::Job(std::string&& name, JobGroup_e group, order_t order)
 {
 }
 
-std::string&& Job::toString()
+std::string&& Job::toString() const
 {
     std::stringstream sstr;
     sstr << "Job " << m_job_id << ":\tname=\"" << m_name

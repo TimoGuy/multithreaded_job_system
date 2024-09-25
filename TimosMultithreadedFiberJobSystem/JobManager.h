@@ -12,7 +12,7 @@
 class JobManager
 {
 public:
-    JobManager(std::function<void()>&& on_empty_jobs_fn);
+    JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn);
 
     // To be executed during job execution or in `on_empty_jobs_fn`.
     void emplaceJob(Job* job);
@@ -79,7 +79,7 @@ private:
     std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
 
     std::mutex m_handle_job_switch_mutex;
-    std::function<void()> m_on_empty_jobs_fn;
+    std::function<void(JobManager&)> m_on_empty_jobs_fn;
 #ifdef _DEBUG
     std::atomic_bool m_is_in_job_switch{ false };
 #endif

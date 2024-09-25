@@ -3,7 +3,7 @@
 #include <cassert>
 
 
-JobManager::JobManager(std::function<void()>&& on_empty_jobs_fn)
+JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn)
     : m_on_empty_jobs_fn(on_empty_jobs_fn)
 {
     // @NOTE: Setting this to 0 will trigger populating a new
@@ -46,6 +46,12 @@ void JobManager::executeNextJob()
         std::unique_lock<std::mutex> lock{ m_handle_job_switch_mutex, std::try_to_lock };
         if (lock.owns_lock())
         {
+            // Execute empty jobs callback (last minute pending jobs).
+            // @NOTE: this callback can be used to solicit new
+            //        jobs from various parts of the program.
+            if (m_on_empty_jobs_fn)
+                m_on_empty_jobs_fn(*this);
+
 #ifdef _DEBUG
             m_is_in_job_switch = true;
 #endif
@@ -166,12 +172,6 @@ void JobManager::reportJobFinishExecuting(
 
 void JobManager::movePendingJobsIntoExecQueue()
 {
-    // Execute empty jobs callback.
-    // @NOTE: this callback can be used to solicit new
-    //        jobs from various parts of the program.
-    if (m_on_empty_jobs_fn)
-        m_on_empty_jobs_fn();
-
     size_t total_jobs{ 0 };
 
     for (uint8_t group_idx = 0; group_idx < JobGroup_e::NUM_JOB_GROUPS; group_idx++)
