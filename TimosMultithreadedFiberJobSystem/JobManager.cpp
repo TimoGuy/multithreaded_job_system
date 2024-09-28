@@ -24,7 +24,8 @@ void JobManager::emplaceJob(Job* job)
 
     // @CHECK: may have to add editing mutex,
     //         but I'm pretty sure it's not needed.
-    assert(!m_is_in_job_switch);
+    /*bool check{ m_is_in_job_switch };  // @NOTE: `m_is_in_job_switch` is atomic, but it's invisible amongst the different threads, so commneting out this assert for now.
+    assert(!m_is_in_job_switch);*/
     m_pending_joblists[job->m_group].push_back(job);
 }
 
@@ -46,7 +47,7 @@ void JobManager::executeNextJob()
         fetchExecutingJob(job_group_idx, jobspan_idx, job_idx) };
 
     // @DEBUG
-    kkkk[j ojo++] = static_cast<uint8_t>(res);
+    kkkk[jojo++] = static_cast<uint8_t>(res);
 
     switch (res)
     {
@@ -91,7 +92,6 @@ void JobManager::executeNextJob()
 
     case FetchResult_e::RESULT_NO_JOB_RESERVED:
         m_executing_queue.num_threads_using_executing_queue--;
-        // Fallthru.
     case FetchResult_e::RESULT_WAIT_FOR_NEXT_BATCH:
     default:
         break;
@@ -229,6 +229,8 @@ void JobManager::waitUntilExecutingQueueUnused()
 void JobManager::movePendingJobsIntoExecQueue()
 {
     ZoneScoped;
+
+    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     size_t total_jobs{ 0 };
 
