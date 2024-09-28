@@ -30,8 +30,8 @@ void JobManager::emplaceJob(Job* job)
 }
 
 // @DEBUG
-inline static std::atomic_uint8_t jojo = 0;
-inline static uint8_t kkkk[256];
+inline static std::atomic_uint8_t lkj = 0;
+inline static intptr_t kkkk[256];
 
 // @NOTE: it's assumed that this isn't executed while the pending
 //        group to executing switch is being made.
@@ -46,9 +46,6 @@ void JobManager::executeNextJob()
     Job* job_obj;
     FetchResult_e res{
         fetchExecutingJob(job_group_idx, jobspan_idx, job_idx, job_obj) };
-
-    // @DEBUG
-    kkkk[jojo++] = static_cast<uint8_t>(res);
 
     switch (res)
     {
@@ -82,10 +79,17 @@ void JobManager::executeNextJob()
     }
 
     case FetchResult_e::RESULT_JOB_RESERVED:
+    {
+        // @DEBUG
+        uint8_t cap{ lkj++ };
+        kkkk[cap] = reinterpret_cast<intptr_t>(job_obj);
+
         // Execute fetched job.
         (void)job_obj->execute();  // @TODO: don't ignoore the returned int.
         reportJobFinishExecuting(job_group_idx, jobspan_idx, job_idx);
+
         break;
+    }
 
     case FetchResult_e::RESULT_NO_JOB_RESERVED:
         m_executing_queue.num_threads_using_executing_queue--;

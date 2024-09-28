@@ -21,7 +21,7 @@ static bool workerThreadFn(JobManager& job_mgr)
     }
 }
 
-std::vector<std::unique_ptr<Job>> all_jobs;
+static std::vector<std::unique_ptr<Job>> all_jobs;
 
 static void solicitJobsFn(JobManager& job_mgr)
 {
