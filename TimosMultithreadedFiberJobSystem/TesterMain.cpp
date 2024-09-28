@@ -55,7 +55,7 @@ int32_t main()
     }
 
     // Spin up multithreading equal to all cores of CPU.
-    const uint32_t num_cores = 4;// std::thread::hardware_concurrency();
+    const uint32_t num_cores = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
     threads.reserve(num_cores);
     for (uint32_t i = 0; i < num_cores; i++)

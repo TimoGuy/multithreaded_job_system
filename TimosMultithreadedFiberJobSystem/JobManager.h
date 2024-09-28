@@ -32,7 +32,8 @@ private:
     FetchResult_e fetchExecutingJob(
         uint8_t& out_job_group_idx,
         size_t& out_jobspan_idx,
-        size_t& out_job_idx);
+        size_t& out_job_idx,
+        Job*& out_job_obj);
 
     void reportJobFinishExecuting(
         uint8_t job_group_idx,

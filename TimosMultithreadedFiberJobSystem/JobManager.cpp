@@ -43,8 +43,9 @@ void JobManager::executeNextJob()
     uint8_t job_group_idx;
     size_t jobspan_idx;
     size_t job_idx;
+    Job* job_obj;
     FetchResult_e res{
-        fetchExecutingJob(job_group_idx, jobspan_idx, job_idx) };
+        fetchExecutingJob(job_group_idx, jobspan_idx, job_idx, job_obj) };
 
     // @DEBUG
     kkkk[jojo++] = static_cast<uint8_t>(res);
@@ -82,11 +83,7 @@ void JobManager::executeNextJob()
 
     case FetchResult_e::RESULT_JOB_RESERVED:
         // Execute fetched job.
-        (void)m_executing_queue
-            .groups[job_group_idx]
-            .jobspans[jobspan_idx]
-            .jobs[job_idx]
-            ->execute();  // @TODO: don't ignoore the returned int.
+        (void)job_obj->execute();  // @TODO: don't ignoore the returned int.
         reportJobFinishExecuting(job_group_idx, jobspan_idx, job_idx);
         break;
 
@@ -101,7 +98,8 @@ void JobManager::executeNextJob()
 JobManager::FetchResult_e JobManager::fetchExecutingJob(
     uint8_t& out_job_group_idx,
     size_t& out_jobspan_idx,
-    size_t& out_job_idx)
+    size_t& out_job_idx,
+    Job*& out_job_obj)
 {
     ZoneScoped;
 
@@ -169,6 +167,11 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
                 out_job_group_idx = group_idx;
                 out_jobspan_idx = jobspan_idx;
                 out_job_idx = attempt_to_reserve_idx;
+                out_job_obj =
+                    m_executing_queue
+                        .groups[group_idx]
+                        .jobspans[jobspan_idx]
+                        .jobs[attempt_to_reserve_idx];
                 ret = FetchResult_e::RESULT_JOB_RESERVED;
 
                 m_executing_queue.remaining_unreserved_jobs--;
