@@ -1,34 +1,52 @@
 #include "JobManager.h"
 
 #include <cassert>
+#include <iostream>  // @TEMP
+#include "TracyImpl.h"
 
 
 JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn)
     : m_on_empty_jobs_fn(on_empty_jobs_fn)
 {
+    ZoneScoped;
+
     // @NOTE: Setting this to 0 will trigger populating a new
     //        round of jobs upon the first `executeNextJob()`.
     m_executing_queue.remaining_unfinished_jobs = 0;
+
+    // Initial value just needs to be set.
+    m_executing_queue.num_threads_using_executing_queue = 0;
 }
 
 void JobManager::emplaceJob(Job* job)
 {
+    ZoneScoped;
+
     // @CHECK: may have to add editing mutex,
     //         but I'm pretty sure it's not needed.
     assert(!m_is_in_job_switch);
     m_pending_joblists[job->m_group].push_back(job);
 }
 
+// @DEBUG
+inline static std::atomic_uint8_t jojo = 0;
+inline static uint8_t kkkk[256];
+
 // @NOTE: it's assumed that this isn't executed while the pending
 //        group to executing switch is being made.
 void JobManager::executeNextJob()
 {
+    ZoneScoped;
+
     // Reserve job.
     uint8_t job_group_idx;
     size_t jobspan_idx;
     size_t job_idx;
     FetchResult_e res{
         fetchExecutingJob(job_group_idx, jobspan_idx, job_idx) };
+
+    // @DEBUG
+    kkkk[j ojo++] = static_cast<uint8_t>(res);
 
     switch (res)
     {
@@ -43,27 +61,25 @@ void JobManager::executeNextJob()
         //     *: maybe in the future multiple threads can work on
         //        separate jobqueue groups instead of just one thread
         //        doing everything.
-        std::unique_lock<std::mutex> lock{ m_handle_job_switch_mutex, std::try_to_lock };
-        if (lock.owns_lock())
-        {
-            // Execute empty jobs callback (last minute pending jobs).
-            // @NOTE: this callback can be used to solicit new
-            //        jobs from various parts of the program.
-            if (m_on_empty_jobs_fn)
-                m_on_empty_jobs_fn(*this);
+
+        // Execute empty jobs callback (last minute pending jobs).
+        // @NOTE: this callback can be used to solicit new
+        //        jobs from various parts of the program.
+        if (m_on_empty_jobs_fn)
+            m_on_empty_jobs_fn(*this);
 
 #ifdef _DEBUG
-            m_is_in_job_switch = true;
+        m_is_in_job_switch = true;
 #endif
-            movePendingJobsIntoExecQueue();
+        waitUntilExecutingQueueUnused();
+        movePendingJobsIntoExecQueue();
 #ifdef _DEBUG
-            m_is_in_job_switch = false;
+        m_is_in_job_switch = false;
 #endif
-        }
         break;
     }
 
-    case FetchResult_e::RESULT_SUCCESS:
+    case FetchResult_e::RESULT_JOB_RESERVED:
         // Execute fetched job.
         (void)m_executing_queue
             .groups[job_group_idx]
@@ -73,9 +89,11 @@ void JobManager::executeNextJob()
         reportJobFinishExecuting(job_group_idx, jobspan_idx, job_idx);
         break;
 
-    case FetchResult_e::RESULT_BUSY:
+    case FetchResult_e::RESULT_NO_JOB_RESERVED:
+        m_executing_queue.num_threads_using_executing_queue--;
+        // Fallthru.
+    case FetchResult_e::RESULT_WAIT_FOR_NEXT_BATCH:
     default:
-        // Do nothing. Try again.
         break;
     }
 }
@@ -85,27 +103,54 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
     size_t& out_jobspan_idx,
     size_t& out_job_idx)
 {
-    FetchResult_e ret{ FetchResult_e::RESULT_BUSY };
+    ZoneScoped;
+
+    FetchResult_e ret{ FetchResult_e::RESULT_NO_JOB_RESERVED };
 
     // Completion reached.
     if (m_executing_queue.remaining_unfinished_jobs == 0)
     {
-        ret = FetchResult_e::RESULT_ALL_JOBS_COMPLETE;
+        bool expected = false;
+        if (m_refill_executing_queue_claimed.compare_exchange_weak(expected, true))
+        {
+            ret = FetchResult_e::RESULT_ALL_JOBS_COMPLETE;
+        }
+        else
+        {
+            ret = FetchResult_e::RESULT_WAIT_FOR_NEXT_BATCH;
+        }
     }
-    // No more jobs to reserve. Wait for completion.
+    // No more jobs to reserve. Wait for completion/next batch.
     else if (m_executing_queue.remaining_unreserved_jobs == 0)
     {
-        ret = FetchResult_e::RESULT_BUSY;
+        ret = FetchResult_e::RESULT_WAIT_FOR_NEXT_BATCH;
     }
     // Possibly another job to reserve.
     else
     {
-        // @TODO: have the biased job gruop idx (maybe a ref)
+        // Put hold on exec queue as accessing occurs.
+        m_executing_queue.num_threads_using_executing_queue++;
+
+        // @TODO: have the biased job group idx (maybe a ref)
         //        so that there could be less incrementing and fighting.
         for (uint8_t group_idx = 0; group_idx < m_executing_queue.groups.size(); group_idx++)
         {
             auto& group{ m_executing_queue.groups[group_idx] };
+
+            if (group.jobspans.empty())
+            {
+                // Don't search thru empty group.
+                continue;
+            }
+
             size_t jobspan_idx{ group.current_jobspan_idx };  // Capture so it's immutable from another thread.
+
+            if (jobspan_idx >= group.jobspans.size())
+            {
+                // Don't search thru non-existant jobspan.
+                continue;
+            }
+
             auto& jobspan{ group.jobspans[jobspan_idx] };
 
             // This is what's happening in the line below:
@@ -124,7 +169,7 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
                 out_job_group_idx = group_idx;
                 out_jobspan_idx = jobspan_idx;
                 out_job_idx = attempt_to_reserve_idx;
-                ret = FetchResult_e::RESULT_SUCCESS;
+                ret = FetchResult_e::RESULT_JOB_RESERVED;
 
                 m_executing_queue.remaining_unreserved_jobs--;
 
@@ -137,7 +182,7 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
                 // of too many decrements happening at the same time and
                 // the program thinking it was able to successfully reserve
                 // a job.
-                ret = FetchResult_e::RESULT_BUSY;
+                ret = FetchResult_e::RESULT_NO_JOB_RESERVED;
                 jobspan.remaining_unreserved_jobs = 0;
             }
         }
@@ -151,6 +196,8 @@ void JobManager::reportJobFinishExecuting(
     size_t jobspan_idx,
     size_t job_idx)
 {
+    ZoneScoped;
+
     (void)job_idx;  // @TODO: maybe remove this as an arg?
 
     auto& group{ m_executing_queue.groups[job_group_idx] };
@@ -167,11 +214,22 @@ void JobManager::reportJobFinishExecuting(
         group.current_jobspan_idx++;
     }
 
+    m_executing_queue.num_threads_using_executing_queue--;
     m_executing_queue.remaining_unfinished_jobs--;  // @NOTE: update very last.
+}
+
+void JobManager::waitUntilExecutingQueueUnused()
+{
+    ZoneScoped;
+    while (m_executing_queue.num_threads_using_executing_queue > 0)
+    {
+    }
 }
 
 void JobManager::movePendingJobsIntoExecQueue()
 {
+    ZoneScoped;
+
     size_t total_jobs{ 0 };
 
     for (uint8_t group_idx = 0; group_idx < JobGroup_e::NUM_JOB_GROUPS; group_idx++)
@@ -209,6 +267,7 @@ void JobManager::movePendingJobsIntoExecQueue()
     }
 
     // Unlock executing queue.
+    m_refill_executing_queue_claimed = false;
     m_executing_queue.remaining_unreserved_jobs = total_jobs;
     m_executing_queue.remaining_unfinished_jobs = total_jobs;  // Do this last since it's the first checked value!
 }

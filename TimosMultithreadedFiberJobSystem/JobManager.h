@@ -24,8 +24,9 @@ private:
     enum FetchResult_e
     {
         RESULT_ALL_JOBS_COMPLETE = 0,
-        RESULT_SUCCESS,
-        RESULT_BUSY,
+        RESULT_WAIT_FOR_NEXT_BATCH,
+        RESULT_JOB_RESERVED,
+        RESULT_NO_JOB_RESERVED,
     };
 
     FetchResult_e fetchExecutingJob(
@@ -38,6 +39,7 @@ private:
         size_t jobspan_idx,
         size_t job_idx);
 
+    void waitUntilExecutingQueueUnused();
     void movePendingJobsIntoExecQueue();
 
     struct JobGroup
@@ -75,10 +77,11 @@ private:
         std::array<JobGroup, JobGroup_e::NUM_JOB_GROUPS> groups;
         std::atomic_size_t remaining_unreserved_jobs;
         std::atomic_size_t remaining_unfinished_jobs;
+        std::atomic_size_t num_threads_using_executing_queue;
     } m_executing_queue;
     std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
+    std::atomic_bool m_refill_executing_queue_claimed{ false };
 
-    std::mutex m_handle_job_switch_mutex;
     std::function<void(JobManager&)> m_on_empty_jobs_fn;
 #ifdef _DEBUG
     std::atomic_bool m_is_in_job_switch{ false };
