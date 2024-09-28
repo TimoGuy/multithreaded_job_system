@@ -15,12 +15,14 @@ public:
     JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn);
 
     // To be executed during job execution or in `on_empty_jobs_fn`.
-    void emplaceJob(Job* job);
+    void emplaceJob(Job* job);  // @TODO: if executed during job execution, need to add a mutex on emplacing jobs.
 
     // To be executed by each individual worker thread.
     void executeNextJob();
 
 private:
+    void emplaceJobNoLock(Job* job);
+
     enum FetchResult_e
     {
         RESULT_ALL_JOBS_COMPLETE = 0,
@@ -32,13 +34,9 @@ private:
     FetchResult_e fetchExecutingJob(
         uint8_t& out_job_group_idx,
         size_t& out_jobspan_idx,
-        size_t& out_job_idx,
         Job*& out_job_obj);
 
-    void reportJobFinishExecuting(
-        uint8_t job_group_idx,
-        size_t jobspan_idx,
-        size_t job_idx);
+    void reportJobFinishExecuting(uint8_t job_group_idx, size_t jobspan_idx);
 
     void waitUntilExecutingQueueUnused();
     void movePendingJobsIntoExecQueue();

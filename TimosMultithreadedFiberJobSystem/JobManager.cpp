@@ -22,16 +22,11 @@ void JobManager::emplaceJob(Job* job)
 {
     ZoneScoped;
 
-    // @CHECK: may have to add editing mutex,
-    //         but I'm pretty sure it's not needed.
-    /*bool check{ m_is_in_job_switch };  // @NOTE: `m_is_in_job_switch` is atomic, but it's invisible amongst the different threads, so commneting out this assert for now.
-    assert(!m_is_in_job_switch);*/
-    m_pending_joblists[job->m_group].push_back(job);
-}
+    // @TODO: add lock if `emplaceJob()` is called
+    //        from inside a job.
 
-// @DEBUG
-inline static std::atomic_uint8_t lkj = 0;
-inline static intptr_t kkkk[256];
+    emplaceJobNoLock(job);
+}
 
 // @NOTE: it's assumed that this isn't executed while the pending
 //        group to executing switch is being made.
@@ -42,10 +37,9 @@ void JobManager::executeNextJob()
     // Reserve job.
     uint8_t job_group_idx;
     size_t jobspan_idx;
-    size_t job_idx;
     Job* job_obj;
     FetchResult_e res{
-        fetchExecutingJob(job_group_idx, jobspan_idx, job_idx, job_obj) };
+        fetchExecutingJob(job_group_idx, jobspan_idx, job_obj) };
 
     switch (res)
     {
@@ -67,26 +61,17 @@ void JobManager::executeNextJob()
         if (m_on_empty_jobs_fn)
             m_on_empty_jobs_fn(*this);
 
-#ifdef _DEBUG
-        m_is_in_job_switch = true;
-#endif
         waitUntilExecutingQueueUnused();
         movePendingJobsIntoExecQueue();
-#ifdef _DEBUG
-        m_is_in_job_switch = false;
-#endif
+
         break;
     }
 
     case FetchResult_e::RESULT_JOB_RESERVED:
     {
-        // @DEBUG
-        uint8_t cap{ lkj++ };
-        kkkk[cap] = reinterpret_cast<intptr_t>(job_obj);
-
         // Execute fetched job.
         (void)job_obj->execute();  // @TODO: don't ignoore the returned int.
-        reportJobFinishExecuting(job_group_idx, jobspan_idx, job_idx);
+        reportJobFinishExecuting(job_group_idx, jobspan_idx);
 
         break;
     }
@@ -99,10 +84,15 @@ void JobManager::executeNextJob()
     }
 }
 
+void JobManager::emplaceJobNoLock(Job* job)
+{
+    ZoneScoped;
+    m_pending_joblists[job->m_group].push_back(job);
+}
+
 JobManager::FetchResult_e JobManager::fetchExecutingJob(
     uint8_t& out_job_group_idx,
     size_t& out_jobspan_idx,
-    size_t& out_job_idx,
     Job*& out_job_obj)
 {
     ZoneScoped;
@@ -170,7 +160,6 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
                 // Successfully was able to reserve a job!
                 out_job_group_idx = group_idx;
                 out_jobspan_idx = jobspan_idx;
-                out_job_idx = attempt_to_reserve_idx;
                 out_job_obj =
                     m_executing_queue
                         .groups[group_idx]
@@ -198,14 +187,9 @@ JobManager::FetchResult_e JobManager::fetchExecutingJob(
     return ret;
 }
 
-void JobManager::reportJobFinishExecuting(
-    uint8_t job_group_idx,
-    size_t jobspan_idx,
-    size_t job_idx)
+void JobManager::reportJobFinishExecuting(uint8_t job_group_idx, size_t jobspan_idx)
 {
     ZoneScoped;
-
-    (void)job_idx;  // @TODO: maybe remove this as an arg?
 
     auto& group{ m_executing_queue.groups[job_group_idx] };
     auto& jobspan{ group.jobspans[jobspan_idx] };
@@ -236,8 +220,6 @@ void JobManager::waitUntilExecutingQueueUnused()
 void JobManager::movePendingJobsIntoExecQueue()
 {
     ZoneScoped;
-
-    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     size_t total_jobs{ 0 };
 
