@@ -35,22 +35,29 @@ private:
     std::atomic<Mode_e> m_current_mode{ MODE_MUTATE_PARTY_LIST };
     std::atomic_uint8_t m_num_threads_gathering_jobs{ 0 };
 
-    enum FetchResult_e
+    /*enum FetchResult_e
     {
         RESULT_ALL_JOBS_COMPLETE = 0,
         RESULT_WAIT_FOR_NEXT_BATCH,
         RESULT_JOB_RESERVED,
         RESULT_NO_JOB_RESERVED,
-    };
+    };*/
 
-    FetchResult_e fetchExecutingJob(
-        uint8_t& out_job_group_idx,
-        size_t& out_jobspan_idx,
-        Job*& out_job_obj);
+    bool reserveAndExecuteNextJob();
 
-    void reportJobFinishExecuting(uint8_t job_group_idx, size_t jobspan_idx);
+    inline bool isAllJobExecutionFinished()
+    {
+        return (m_executing_queue.remaining_unfinished_jobs == 0);
+    }
 
-    void waitUntilExecutingQueueUnused();
+    //FetchResult_e fetchExecutingJob(
+    //    uint8_t& out_job_group_idx,
+    //    size_t& out_jobspan_idx,
+    //    Job*& out_job_obj);
+
+    /*void reportJobFinishExecuting(uint8_t job_group_idx, size_t jobspan_idx);*/
+
+    //void waitUntilExecutingQueueUnused();
     void movePendingJobsIntoExecQueue();
 
     struct JobGroup
@@ -88,7 +95,7 @@ private:
         std::array<JobGroup, JobGroup_e::NUM_JOB_GROUPS> groups;
         std::atomic_size_t remaining_unreserved_jobs;
         std::atomic_size_t remaining_unfinished_jobs;
-        std::atomic_size_t num_threads_using_executing_queue;
+        //std::atomic_size_t num_threads_using_executing_queue;
     } m_executing_queue;
     std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
     std::atomic_bool m_refill_executing_queue_claimed{ false };

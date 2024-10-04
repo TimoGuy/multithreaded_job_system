@@ -14,8 +14,10 @@ JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn)
     //        round of jobs upon the first `executeNextJob()`.
     m_executing_queue.remaining_unfinished_jobs = 0;
 
+#if 0
     // Initial value just needs to be set.
     m_executing_queue.num_threads_using_executing_queue = 0;
+#endif
 }
 
 void JobManager::emplaceJob(Job* job)
@@ -51,7 +53,7 @@ void JobManager::executeNextJob()
         uint8_t gathering_thread_idx{ m_num_threads_gathering_jobs++ };
         if (gathering_thread_idx < k_allowed_gathering_threads)
         {
-            // Perform gathering.
+            // Solicit jobs and perform sorting.
             if (m_on_empty_jobs_fn)
                 m_on_empty_jobs_fn(*this);
 
@@ -64,14 +66,16 @@ void JobManager::executeNextJob()
     }
 
     case MODE_RESERVE_AND_EXECUTE_JOBS:
-    {
-
+        // If reservation fails, move to waiting until job execution finishes.
+        if (!reserveAndExecuteNextJob())
+        {
+            m_current_mode = MODE_WAIT_UNTIL_EXECUTION_FINISHED;
+        }
         break;
-    }
 
     case MODE_WAIT_UNTIL_EXECUTION_FINISHED:
         // Wait until there are no more unfinished jobs.
-        if (m_executing_queue.remaining_unfinished_jobs == 0)
+        if (isAllJobExecutionFinished())
         {
             m_current_mode = MODE_MUTATE_PARTY_LIST;
         }
@@ -92,7 +96,7 @@ void JobManager::executeNextJob()
 
 
 
-
+#if 0
     // Reserve job.
     uint8_t job_group_idx;
     size_t jobspan_idx;
@@ -141,6 +145,7 @@ void JobManager::executeNextJob()
     default:
         break;
     }
+#endif
 }
 
 void JobManager::emplaceJobNoLock(Job* job)
@@ -149,6 +154,91 @@ void JobManager::emplaceJobNoLock(Job* job)
     m_pending_joblists[job->m_group].push_back(job);
 }
 
+bool JobManager::reserveAndExecuteNextJob()
+{
+    // Signal no more reserved jobs.
+    if (m_executing_queue.remaining_unreserved_jobs == 0)
+    {
+        return false;
+    }
+
+    // Reserve a job.
+
+    // @TODO: have the biased job group idx (maybe a ref)
+    //        so that there could be less incrementing and fighting.
+    for (uint8_t group_idx = 0; group_idx < m_executing_queue.groups.size(); group_idx++)
+    {
+        auto& group{ m_executing_queue.groups[group_idx] };
+
+        if (group.jobspans.empty())
+        {
+            // Don't search thru empty group.
+            continue;
+        }
+
+        size_t jobspan_idx{ group.current_jobspan_idx };  // Capture so it's immutable from another thread.
+
+        if (jobspan_idx >= group.jobspans.size())
+        {
+            // Don't search thru non-existant jobspan.
+            continue;
+        }
+
+        auto& jobspan{ group.jobspans[jobspan_idx] };
+
+        // This is what's happening in the line below:
+        //   Step 1: Decrement atomic unreserved jobs, then get the result.
+        //           Ex: 0 -> ret(1.8e19), 1 -> ret(0), 32 -> ret(31)
+        //   Step 2: Check that the returned number is less than the jobs
+        //           size. If there are 0 jobs left, it wraps around since
+        //           it's unsigned. If it's successful, then indicates
+        //           successful job reservation.
+        // @NOTE: this job reservation system allows us to not need a mutex
+        //        or any sync struct to manage access to the current jobspan.
+        size_t attempt_to_reserve_idx{ --jobspan.remaining_unreserved_jobs };
+        if (attempt_to_reserve_idx < jobspan.jobs.size())
+        {
+            // Successfully was able to reserve a job!
+            m_executing_queue.remaining_unreserved_jobs--;
+
+            // Execute reserved job.
+            m_executing_queue
+                .groups[group_idx]
+                .jobspans[jobspan_idx]
+                .jobs[attempt_to_reserve_idx]
+                ->execute();
+            
+            // Log job as finished.
+            size_t remaining_jobs{ --jobspan.remaining_unfinished_jobs };
+            if (remaining_jobs == 0)
+            {
+                // Move to the next span.
+                // @NOTE: due to fetching jobs using the `remaining_unreserved_jobs`
+                //        atomic counter, if the jobspan is incremented to be out
+                //        of range, then the jobspan index is actually never used,
+                //        so no errors!
+                group.current_jobspan_idx++;
+            }
+
+            m_executing_queue.remaining_unfinished_jobs--;  // @NOTE: update very last.
+
+            break;  // Leave the search. Fetch is finished.
+        }
+        else
+        {
+            // No jobs left in group. Do some housekeeping and reset the
+            // remaining unreserved jobs to 0 to minimize the chances
+            // of too many decrements happening at the same time and
+            // the program thinking it was able to successfully reserve
+            // a job.
+            jobspan.remaining_unreserved_jobs = 0;
+        }
+    }
+
+    return true;
+}
+
+#if 0
 JobManager::FetchResult_e JobManager::fetchExecutingJob(
     uint8_t& out_job_group_idx,
     size_t& out_jobspan_idx,
@@ -275,6 +365,7 @@ void JobManager::waitUntilExecutingQueueUnused()
     {
     }
 }
+#endif
 
 void JobManager::movePendingJobsIntoExecQueue()
 {
