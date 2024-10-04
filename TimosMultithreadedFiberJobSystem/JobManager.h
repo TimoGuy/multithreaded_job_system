@@ -23,6 +23,18 @@ public:
 private:
     void emplaceJobNoLock(Job* job);
 
+    enum Mode_e : uint8_t
+    {
+        MODE_MUTATE_PARTY_LIST = 0,
+        MODE_GATHER_JOBS,
+        MODE_RESERVE_AND_EXECUTE_JOBS,
+        MODE_WAIT_UNTIL_EXECUTION_FINISHED,
+
+        NUM_MODES,
+    };
+    std::atomic<Mode_e> m_current_mode{ MODE_MUTATE_PARTY_LIST };
+    std::atomic_uint8_t m_num_threads_gathering_jobs{ 0 };
+
     enum FetchResult_e
     {
         RESULT_ALL_JOBS_COMPLETE = 0,

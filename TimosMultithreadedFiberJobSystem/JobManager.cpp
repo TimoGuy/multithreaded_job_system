@@ -34,6 +34,65 @@ void JobManager::executeNextJob()
 {
     ZoneScoped;
 
+    // State Machine.
+    switch (m_current_mode)
+    {
+    case MODE_MUTATE_PARTY_LIST:
+        // @TODO: add entities and stuff and mutate the entity list
+        //        here. For now, just move to the next state.
+
+        m_num_threads_gathering_jobs = 0;
+        m_current_mode = MODE_GATHER_JOBS;
+        break;
+
+    case MODE_GATHER_JOBS:
+    {
+        constexpr uint8_t k_allowed_gathering_threads{ 1 };
+        uint8_t gathering_thread_idx{ m_num_threads_gathering_jobs++ };
+        if (gathering_thread_idx < k_allowed_gathering_threads)
+        {
+            // Perform gathering.
+            if (m_on_empty_jobs_fn)
+                m_on_empty_jobs_fn(*this);
+
+            //waitUntilExecutingQueueUnused();  @CHECK: this should be unnecessary.
+            movePendingJobsIntoExecQueue();
+
+            m_current_mode = MODE_RESERVE_AND_EXECUTE_JOBS;
+        }
+        break;
+    }
+
+    case MODE_RESERVE_AND_EXECUTE_JOBS:
+    {
+
+        break;
+    }
+
+    case MODE_WAIT_UNTIL_EXECUTION_FINISHED:
+        // Wait until there are no more unfinished jobs.
+        if (m_executing_queue.remaining_unfinished_jobs == 0)
+        {
+            m_current_mode = MODE_MUTATE_PARTY_LIST;
+        }
+        break;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Reserve job.
     uint8_t job_group_idx;
     size_t jobspan_idx;
