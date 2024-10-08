@@ -5,6 +5,7 @@
 #include <map>
 #include <functional>
 #include <mutex>
+#include <cassert>
 #include "Job.h"
 #include "JobGroupType.h"
 
@@ -85,6 +86,52 @@ private:
         std::vector<JobSpan> jobspans;
         std::atomic_size_t current_jobspan_idx;
     };
+
+    class RingQueue
+    {
+    public:
+        bool is_empty()
+        {
+            return (m_front_idx == m_back_idx);
+        }
+
+        void push_back(Job* elem)
+        {
+            m_jobs[m_back_idx] = elem;
+            m_back_idx++;
+            assert(m_front_idx != m_back_idx);
+        }
+
+        Job* pop_front()
+        {
+            assert(m_front_idx != m_back_idx);
+            Job* ret{ m_jobs[m_front_idx] };
+            m_front_idx++;
+            return ret;
+        }
+
+    private:
+        inline uint32_t offset_idx(uint32_t start, uint32_t offset)
+        {
+            return (start + offset) % k_max_entries;
+        }
+
+        inline static constexpr uint32_t k_max_entries{ 1024 };
+        Job* m_jobs[k_max_entries];
+        uint32_t m_front_idx{ 0 };
+        uint32_t m_back_idx{ 0 };
+    };
+
+    struct ThreadSafeJobConsumerQueue
+    {
+        std::mutex access_mutex;
+
+        std::vector<Job*> jobs;
+    };
+    std::vector<ThreadSafeJobConsumerQueue> m_consumer_queues;
+
+    Job* getJobFromConsumerQueue(bool block, uint32_t queue_idx);
+
 
     // When queuing up jobs, the currently executing packed
     // set of jobs `executingGroups` must be immutable.

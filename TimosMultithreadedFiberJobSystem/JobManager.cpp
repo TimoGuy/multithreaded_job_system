@@ -412,3 +412,26 @@ void JobManager::movePendingJobsIntoExecQueue()
     m_executing_queue.remaining_unreserved_jobs = total_jobs;
     m_executing_queue.remaining_unfinished_jobs = total_jobs;  // Do this last since it's the first checked value!
 }
+
+Job* JobManager::getJobFromConsumerQueue(bool block, uint32_t queue_idx)
+{
+    auto& queue = m_consumer_queues[queue_idx];
+
+    // Start access.
+    if (block)
+        queue.access_mutex.lock();
+    else
+        if (!queue.access_mutex.try_lock())
+            return nullptr;  // Lock failed.
+
+    // Pull one job from queue.
+    if (!queue.jobs.empty())
+    {
+        queue.
+    }
+
+    // End access.
+    queue.access_mutex.unlock();
+
+    return nullptr;
+}
