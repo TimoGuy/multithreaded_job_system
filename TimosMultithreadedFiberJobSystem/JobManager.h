@@ -126,7 +126,7 @@ private:
     {
         std::mutex access_mutex;
 
-        std::vector<Job*> jobs;
+        RingQueue jobs;
     };
     std::vector<ThreadSafeJobConsumerQueue> m_consumer_queues;
 

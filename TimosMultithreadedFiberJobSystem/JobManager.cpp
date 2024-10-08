@@ -373,6 +373,9 @@ void JobManager::movePendingJobsIntoExecQueue()
 
     size_t total_jobs{ 0 };
 
+    // @TODO: figure out how you wanna do the job consumption!!!!! And how to manage jobs across multiple threads.
+    //        maybe have a fetch to get new jobs whenever a group of jobs gets finished?
+
     for (uint8_t group_idx = 0; group_idx < JobGroup_e::NUM_JOB_GROUPS; group_idx++)
     {
         auto& exec_jobgroup{ m_executing_queue.groups[group_idx] };
@@ -416,22 +419,29 @@ void JobManager::movePendingJobsIntoExecQueue()
 Job* JobManager::getJobFromConsumerQueue(bool block, uint32_t queue_idx)
 {
     auto& queue = m_consumer_queues[queue_idx];
+    Job* job{ nullptr };
 
     // Start access.
+    bool lock_success;
     if (block)
-        queue.access_mutex.lock();
-    else
-        if (!queue.access_mutex.try_lock())
-            return nullptr;  // Lock failed.
-
-    // Pull one job from queue.
-    if (!queue.jobs.empty())
     {
-        queue.
+        queue.access_mutex.lock();
+        lock_success = true;
+    }
+    else
+        lock_success = queue.access_mutex.try_lock();
+
+    if (lock_success)
+    {
+        // Pull one job from queue.
+        if (!queue.jobs.is_empty())
+        {
+            job = queue.jobs.pop_front();
+        }
+
+        // End access.
+        queue.access_mutex.unlock();
     }
 
-    // End access.
-    queue.access_mutex.unlock();
-
-    return nullptr;
+    return job;
 }
