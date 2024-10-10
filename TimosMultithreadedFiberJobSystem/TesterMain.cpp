@@ -11,13 +11,13 @@
 #include "TracyImpl.h"
 
 
-static bool workerThreadFn(JobManager& job_mgr)
+static bool workerThreadFn(JobManager& job_mgr, uint32_t thread_idx)
 {
     ZoneScoped;
 
     while (true)
     {
-        job_mgr.executeNextJob();
+        job_mgr.executeNextJob(thread_idx);
     }
 }
 
@@ -60,7 +60,7 @@ int32_t main()
     threads.reserve(num_cores);
     for (uint32_t i = 0; i < num_cores; i++)
     {
-        threads.emplace_back(workerThreadFn, std::ref(*job_mgr));
+        threads.emplace_back(workerThreadFn, std::ref(*job_mgr), i);
     }
 
     // Wait until all threads are complete before closing program.

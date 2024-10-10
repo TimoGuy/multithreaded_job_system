@@ -19,7 +19,7 @@ public:
     void emplaceJob(Job* job);  // @TODO: if executed during job execution, need to add a mutex on emplacing jobs.
 
     // To be executed by each individual worker thread.
-    void executeNextJob();
+    void executeNextJob(uint32_t thread_idx);
 
 private:
     void emplaceJobNoLock(Job* job);
@@ -44,11 +44,16 @@ private:
         RESULT_NO_JOB_RESERVED,
     };*/
 
-    bool reserveAndExecuteNextJob();
+    void reserveAndExecuteNextJob(uint32_t thread_idx);
+
+    inline bool isAllJobsReserved()
+    {
+        return (m_remaining_unreserved_jobs == 0);
+    }
 
     inline bool isAllJobExecutionFinished()
     {
-        return (m_executing_queue.remaining_unfinished_jobs == 0);
+        return (m_remaining_unfinished_jobs == 0);
     }
 
     //FetchResult_e fetchExecutingJob(
@@ -61,7 +66,7 @@ private:
     //void waitUntilExecutingQueueUnused();
     void movePendingJobsIntoExecQueue();
 
-    struct JobGroup
+    /*struct JobGroup
     {
         struct JobSpan
         {
@@ -85,9 +90,10 @@ private:
         };
         std::vector<JobSpan> jobspans;
         std::atomic_size_t current_jobspan_idx;
-    };
+    };*/
 
-    class RingQueue
+    template <class T>
+    class LockableRingQueue : public std::mutex
     {
     public:
         bool is_empty()
@@ -95,61 +101,73 @@ private:
             return (m_front_idx == m_back_idx);
         }
 
-        void push_back(Job* elem)
+        void push_back(T elem)
         {
-            m_jobs[m_back_idx] = elem;
-            m_back_idx++;
-            assert(m_front_idx != m_back_idx);
+            m_elements[m_back_idx] = elem;
+            m_back_idx = offset_idx(m_back_idx, 1);
+            assert(!is_empty());
         }
 
-        Job* pop_front()
+        T pop_front()
         {
-            assert(m_front_idx != m_back_idx);
-            Job* ret{ m_jobs[m_front_idx] };
-            m_front_idx++;
+            assert(!is_empty());
+            T ret{ m_elements[m_front_idx] };
+            m_front_idx = offset_idx(m_front_idx, 1);
             return ret;
         }
 
     private:
         inline uint32_t offset_idx(uint32_t start, uint32_t offset)
         {
-            return (start + offset) % k_max_entries;
+            return (start + offset) % k_max_elements;
         }
 
-        inline static constexpr uint32_t k_max_entries{ 1024 };
-        Job* m_jobs[k_max_entries];
+        inline static constexpr uint32_t k_max_elements{ 1024 };
+        T m_elements[k_max_elements];
         uint32_t m_front_idx{ 0 };
         uint32_t m_back_idx{ 0 };
     };
 
-    struct ThreadSafeJobConsumerQueue
-    {
-        std::mutex access_mutex;
-
-        RingQueue jobs;
-    };
-    std::vector<ThreadSafeJobConsumerQueue> m_consumer_queues;
+    std::vector<LockableRingQueue<Job*>> m_consumer_queues;
 
     Job* getJobFromConsumerQueue(bool block, uint32_t queue_idx);
+    void insertJobsIntoConsumerQueues(std::vector<Job*>&& jobs);
 
+    template <class T>
+    class LockableVector : public std::vector<T>, public std::mutex { };
 
     // When queuing up jobs, the currently executing packed
     // set of jobs `executingGroups` must be immutable.
     // If new jobs are added such as deleting an object, the
     // job will be only added into the next executing group.
-    struct JobQueue
+
+    //struct JobQueue
+    //{
+    //    std::array<JobGroup, JobGroup_e::NUM_JOB_GROUPS> groups;
+    //    std::atomic_size_t remaining_unreserved_jobs;
+    //    std::atomic_size_t remaining_unfinished_jobs;
+    //    //std::atomic_size_t num_threads_using_executing_queue;
+    //} m_executing_queue;
+
+    std::atomic_size_t m_remaining_unreserved_jobs{ 0 };
+    std::atomic_size_t m_remaining_unfinished_jobs{ 0 };
+
+    struct LockableJobGroupIterationState : public std::mutex
     {
-        std::array<JobGroup, JobGroup_e::NUM_JOB_GROUPS> groups;
-        std::atomic_size_t remaining_unreserved_jobs;
-        std::atomic_size_t remaining_unfinished_jobs;
-        //std::atomic_size_t num_threads_using_executing_queue;
-    } m_executing_queue;
-    std::array<std::vector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
-    std::atomic_bool m_refill_executing_queue_claimed{ false };
+        uint32_t group_idx;
+        uint32_t remaining_unfinished_jobs;
+    };
+    std::array<LockableJobGroupIterationState, JobGroup_e::NUM_JOB_GROUPS> m_executing_iteration_state;
+    std::array<LockableVector<std::vector<Job*>>, JobGroup_e::NUM_JOB_GROUPS> m_executing_grouped_joblists;
+
+    // @NOTE: This is a non-threadsafe method!
+    void loadJoblistGroupIntoConsumerQueues(JobGroup_e job_group, uint32_t group_idx);
+
+    std::array<LockableVector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
+    //std::atomic_bool m_refill_executing_queue_claimed{ false };
 
     std::function<void(JobManager&)> m_on_empty_jobs_fn;
 #ifdef _DEBUG
     std::atomic_bool m_is_in_job_switch{ false };
 #endif
 };
-
