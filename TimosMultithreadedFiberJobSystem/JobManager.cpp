@@ -6,10 +6,12 @@
 #include "TracyImpl.h"
 
 
-JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn)
+JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn, uint32_t num_consumer_queues)
     : m_on_empty_jobs_fn(on_empty_jobs_fn)
 {
     ZoneScoped;
+
+    m_consumer_queues.resize(num_consumer_queues);
 
     // @NOTE: Setting this to 0 will trigger populating a new
     //        round of jobs upon the first `executeNextJob()`.
@@ -51,7 +53,17 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         {
             // Solicit jobs and perform sorting.
             if (m_on_empty_jobs_fn)
+            {
+                // @TEMP: @INCOMPLETE: fix how to do job loading.
+                for (auto& pending_joblist : m_pending_joblists)
+                    pending_joblist.lock();
+
                 m_on_empty_jobs_fn(*this);
+
+                // @TEMP: @INCOMPLETE: fix how to do job loading.
+                for (auto& pending_joblist : m_pending_joblists)
+                    pending_joblist.unlock();
+            }
 
             //waitUntilExecutingQueueUnused();  @CHECK: this should be unnecessary.
             movePendingJobsIntoExecQueue();
@@ -225,13 +237,37 @@ void JobManager::movePendingJobsIntoExecQueue()
 
     size_t total_jobs{ 0 };
 
-    // @TODO: figure out how you wanna do the job consumption!!!!! And how to manage jobs across multiple threads.
-    //        maybe have a fetch to get new jobs whenever a group of jobs gets finished?
-
     for (uint8_t group_idx = 0; group_idx < JobGroup_e::NUM_JOB_GROUPS; group_idx++)
     {
-        // @TODO: START HERE TIMOOOOOOOOOOOO!!!!!!!!!!!!!!!
-        //        Figure out how to group the jobs into their lockable group lists.
+        {
+            // Lock reading and writing buffers.
+            auto& joblists{ m_executing_grouped_joblists[group_idx] };
+            std::lock_guard<std::mutex> lock_joblists{ joblists };
+
+            auto& pending_joblist{ m_pending_joblists[group_idx] };
+            std::lock_guard<std::mutex> lock_pending_joblist{ pending_joblist };
+
+            // Add to total count.
+            total_jobs += pending_joblist.size();
+
+            // Order joblist order into spans.
+            std::map<order_t, std::vector<Job*>> joblist_spans;
+            for (auto job : pending_joblist)
+            {
+                joblist_spans[job->m_order].push_back(job);
+            }
+
+            // Read spans in order into new joblists.
+            joblists.clear();
+            joblists.reserve(joblist_spans.size());
+            for (auto it = joblist_spans.begin(); it != joblist_spans.end(); it++)
+            {
+                joblists.emplace_back(std::move(it->second));
+            }
+
+            // Clear pending joblist.
+            pending_joblist.clear();
+        }
 #if 0
         auto& exec_jobgroup{ m_executing_queue.groups[group_idx] };
         auto& joblist{ m_pending_joblists[group_idx] };
@@ -317,27 +353,29 @@ void JobManager::insertJobsIntoConsumerQueues(std::vector<Job*>&& jobs)
         uint32_t last_idx{ std::min(current_idx + num_jobs_per_queue, total_jobs) };
 
         std::lock_guard<std::mutex> lock{ queue };
-        for (uint32_t i = 0; i < last_idx; i++)
+        for (uint32_t i = current_idx; i < last_idx; i++)
         {
             queue.push_back(jobs[i]);
         }
+
+        current_idx = last_idx;
     }
 }
 
 void JobManager::loadJoblistGroupIntoConsumerQueues(JobGroup_e job_group, uint32_t group_idx)
 {
     auto& s{ m_executing_iteration_state[job_group] };
-    auto& groups{ m_executing_grouped_joblists[job_group] };
 
     s.group_idx = group_idx;
 
-    std::lock_guard<std::mutex> lock{ groups };
+    auto& joblists{ m_executing_grouped_joblists[job_group] };
+    std::lock_guard<std::mutex> lock{ joblists };
 
     // Group exists.
-    if (s.group_idx < groups.size())
+    if (s.group_idx < joblists.size())
     {
-        auto& group{ groups[s.group_idx] };
-        s.remaining_unfinished_jobs = static_cast<uint32_t>(group.size());
-        insertJobsIntoConsumerQueues(std::move(group));
+        auto& joblist{ joblists[s.group_idx] };
+        s.remaining_unfinished_jobs = static_cast<uint32_t>(joblist.size());
+        insertJobsIntoConsumerQueues(std::move(joblist));
     }
 }

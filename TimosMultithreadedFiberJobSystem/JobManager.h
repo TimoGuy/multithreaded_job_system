@@ -13,7 +13,7 @@
 class JobManager
 {
 public:
-    JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn);
+    JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn, uint32_t num_consumer_queues);
 
     // To be executed during job execution or in `on_empty_jobs_fn`.
     void emplaceJob(Job* job);  // @TODO: if executed during job execution, need to add a mutex on emplacing jobs.
@@ -96,6 +96,18 @@ private:
     class LockableRingQueue : public std::mutex
     {
     public:
+        LockableRingQueue() = default;
+
+        LockableRingQueue(LockableRingQueue<T>&& other)
+            : m_elements(std::move(other.m_elements))
+            , m_front_idx(other.m_front_idx)
+            , m_back_idx(other.m_back_idx)
+#ifdef _DEBUG
+            , m_debug_counter(other.m_debug_counter.load())
+#endif
+        {
+        }
+
         bool is_empty()
         {
             return (m_front_idx == m_back_idx);
@@ -105,6 +117,9 @@ private:
         {
             m_elements[m_back_idx] = elem;
             m_back_idx = offset_idx(m_back_idx, 1);
+#ifdef _DEBUG
+            m_debug_counter++;  // @FIXME: even tho the jobs should all get popped off before filling in more jobs, occasionally (like around 1/25 times) the consumer queues get filled with over 1000 jobs even though the job solicitation thingo is just inserting 100 jobs, which should get divided up into multiple cores. However, the pending joblists indicate up to 900 jobs coming from the 100 job thing. idk what is happening imo.
+#endif
             assert(!is_empty());
         }
 
@@ -113,6 +128,9 @@ private:
             assert(!is_empty());
             T ret{ m_elements[m_front_idx] };
             m_front_idx = offset_idx(m_front_idx, 1);
+#ifdef _DEBUG
+            m_debug_counter--;
+#endif
             return ret;
         }
 
@@ -123,9 +141,12 @@ private:
         }
 
         inline static constexpr uint32_t k_max_elements{ 1024 };
-        T m_elements[k_max_elements];
+        std::array<T, k_max_elements> m_elements;
         uint32_t m_front_idx{ 0 };
         uint32_t m_back_idx{ 0 };
+#ifdef _DEBUG
+        std::atomic_uint32_t m_debug_counter{ 0 };
+#endif
     };
 
     std::vector<LockableRingQueue<Job*>> m_consumer_queues;
@@ -171,3 +192,4 @@ private:
     std::atomic_bool m_is_in_job_switch{ false };
 #endif
 };
+

@@ -39,10 +39,11 @@ int32_t main()
     ZoneScoped;
 
     // @TODO: name this something along with crank, slop, engine, hog.
+    const uint32_t num_cores = std::thread::hardware_concurrency();
 
     // Create job manager.
     std::unique_ptr<JobManager> job_mgr{
-        std::make_unique<JobManager>(std::move(solicitJobsFn))
+        std::make_unique<JobManager>(std::move(solicitJobsFn), num_cores)
     };
 
     // Create a bunch of jobs.
@@ -55,7 +56,6 @@ int32_t main()
     }
 
     // Spin up multithreading equal to all cores of CPU.
-    const uint32_t num_cores = std::thread::hardware_concurrency();
     std::vector<std::thread> threads;
     threads.reserve(num_cores);
     for (uint32_t i = 0; i < num_cores; i++)
