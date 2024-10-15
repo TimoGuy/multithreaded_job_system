@@ -49,15 +49,16 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         // @TODO: add entities and stuff and mutate the entity list
         //        here. For now, just move to the next state.
 
-        m_num_threads_gathering_jobs = 0;
-        m_current_mode = MODE_GATHER_JOBS;
+        transitionCurrentModeAtomic(MODE_MUTATE_PARTY_LIST, MODE_GATHER_JOBS);
         break;
 
     case MODE_GATHER_JOBS:
     {
-        constexpr uint8_t k_allowed_gathering_threads{ 1 };
-        uint8_t gathering_thread_idx{ m_num_threads_gathering_jobs++ };
-        if (gathering_thread_idx < k_allowed_gathering_threads)
+        // Force only one thread to execute this mode by forcing
+        // sequential execution and 1st thread invalidating the
+        // mode before 2nd+ threads can enter.
+        std::lock_guard<std::mutex> lock{ m_gather_jobs_mutex };
+        if (m_current_mode == MODE_GATHER_JOBS)
         {
             // Solicit jobs and perform sorting.
             if (m_on_empty_jobs_fn)
@@ -76,7 +77,7 @@ void JobManager::executeNextJob(uint32_t thread_idx)
             //waitUntilExecutingQueueUnused();  @CHECK: this should be unnecessary.
             movePendingJobsIntoExecQueue();
 
-            m_current_mode = MODE_RESERVE_AND_EXECUTE_JOBS;
+            transitionCurrentModeAtomic(MODE_GATHER_JOBS, MODE_RESERVE_AND_EXECUTE_JOBS);
         }
         break;
     }
@@ -86,7 +87,7 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         // until job execution finishes.
         if (isAllJobsReserved())
         {
-            m_current_mode = MODE_WAIT_UNTIL_EXECUTION_FINISHED;
+            transitionCurrentModeAtomic(MODE_RESERVE_AND_EXECUTE_JOBS, MODE_WAIT_UNTIL_EXECUTION_FINISHED);
         }
         else
         {
@@ -98,7 +99,7 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         // Wait until there are no more unfinished jobs.
         if (isAllJobExecutionFinished())
         {
-            m_current_mode = MODE_MUTATE_PARTY_LIST;
+            transitionCurrentModeAtomic(MODE_WAIT_UNTIL_EXECUTION_FINISHED, MODE_MUTATE_PARTY_LIST);
         }
         break;
     }

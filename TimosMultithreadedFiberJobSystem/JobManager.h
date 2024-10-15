@@ -34,7 +34,12 @@ private:
         NUM_MODES,
     };
     std::atomic<Mode_e> m_current_mode{ MODE_MUTATE_PARTY_LIST };
-    std::atomic_uint8_t m_num_threads_gathering_jobs{ 0 };
+    std::mutex m_gather_jobs_mutex;
+
+    inline void transitionCurrentModeAtomic(Mode_e from, Mode_e to)
+    {
+        (void)m_current_mode.compare_exchange_strong(from, to);
+    }
 
     /*enum FetchResult_e
     {
