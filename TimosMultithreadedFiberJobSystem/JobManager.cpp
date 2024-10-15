@@ -35,14 +35,6 @@ void JobManager::executeNextJob(uint32_t thread_idx)
     ZoneScoped;
 
     // State Machine.
-
-    // @TODO: okay, looks like the state machine thing is very broken, very not good bc of some states
-    //        meaning to only allow one thread in but multiple enter while the state changed. I think
-    //        that there needs to be some kind of only one may enter kind of primitive or class/struct.
-    //        So make that eh????
-    // @REPLY: I think that the best thing to do is have a compare and exchange into the singlethreaded mode
-    //         and just have that single threaded mode rerun the whole job refilling, party list mutating logic.
-
     switch (m_current_mode)
     {
     case MODE_MUTATE_PARTY_LIST:
@@ -74,10 +66,12 @@ void JobManager::executeNextJob(uint32_t thread_idx)
                     pending_joblist.unlock();
             }
 
-            //waitUntilExecutingQueueUnused();  @CHECK: this should be unnecessary.
             movePendingJobsIntoExecQueue();
 
-            transitionCurrentModeAtomic(MODE_GATHER_JOBS, MODE_RESERVE_AND_EXECUTE_JOBS);
+            transitionCurrentModeAtomic(
+                MODE_GATHER_JOBS,
+                MODE_RESERVE_AND_EXECUTE_JOBS
+            );
         }
         break;
     }
@@ -87,7 +81,10 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         // until job execution finishes.
         if (isAllJobsReserved())
         {
-            transitionCurrentModeAtomic(MODE_RESERVE_AND_EXECUTE_JOBS, MODE_WAIT_UNTIL_EXECUTION_FINISHED);
+            transitionCurrentModeAtomic(
+                MODE_RESERVE_AND_EXECUTE_JOBS,
+                MODE_WAIT_UNTIL_EXECUTION_FINISHED
+            );
         }
         else
         {
@@ -99,7 +96,10 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         // Wait until there are no more unfinished jobs.
         if (isAllJobExecutionFinished())
         {
-            transitionCurrentModeAtomic(MODE_WAIT_UNTIL_EXECUTION_FINISHED, MODE_MUTATE_PARTY_LIST);
+            transitionCurrentModeAtomic(
+                MODE_WAIT_UNTIL_EXECUTION_FINISHED,
+                MODE_MUTATE_PARTY_LIST
+            );
         }
         break;
     }
@@ -149,95 +149,6 @@ void JobManager::reserveAndExecuteNextJob(uint32_t thread_idx)
     }
 
     m_remaining_unfinished_jobs--;  // Update global stat last.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-    // @TODO: have the biased job group idx (maybe a ref)
-    //        so that there could be less incrementing and fighting.
-    for (uint8_t group_idx = 0; group_idx < m_executing_queue.groups.size(); group_idx++)
-    {
-        auto& group{ m_executing_queue.groups[group_idx] };
-
-        if (group.jobspans.empty())
-        {
-            // Don't search thru empty group.
-            continue;
-        }
-
-        size_t jobspan_idx{ group.current_jobspan_idx };  // Capture so it's immutable from another thread.
-
-        if (jobspan_idx >= group.jobspans.size())
-        {
-            // Don't search thru non-existant jobspan.
-            continue;
-        }
-
-        auto& jobspan{ group.jobspans[jobspan_idx] };
-
-        // This is what's happening in the line below:
-        //   Step 1: Decrement atomic unreserved jobs, then get the result.
-        //           Ex: 0 -> ret(1.8e19), 1 -> ret(0), 32 -> ret(31)
-        //   Step 2: Check that the returned number is less than the jobs
-        //           size. If there are 0 jobs left, it wraps around since
-        //           it's unsigned. If it's successful, then indicates
-        //           successful job reservation.
-        // @NOTE: this job reservation system allows us to not need a mutex
-        //        or any sync struct to manage access to the current jobspan.
-        size_t attempt_to_reserve_idx{ --jobspan.remaining_unreserved_jobs };
-        if (attempt_to_reserve_idx < jobspan.jobs.size())
-        {
-            // Successfully was able to reserve a job!
-            m_executing_queue.remaining_unreserved_jobs--;
-
-            // Execute reserved job.
-            m_executing_queue
-                .groups[group_idx]
-                .jobspans[jobspan_idx]
-                .jobs[attempt_to_reserve_idx]
-                ->execute();
-            
-            // Log job as finished.
-            size_t remaining_jobs{ --jobspan.remaining_unfinished_jobs };
-            if (remaining_jobs == 0)
-            {
-                // Move to the next span.
-                // @NOTE: due to fetching jobs using the `remaining_unreserved_jobs`
-                //        atomic counter, if the jobspan is incremented to be out
-                //        of range, then the jobspan index is actually never used,
-                //        so no errors!
-                group.current_jobspan_idx++;
-            }
-
-            m_executing_queue.remaining_unfinished_jobs--;  // @NOTE: update very last.
-
-            break;  // Leave the search. Fetch is finished.
-        }
-        else
-        {
-            // No jobs left in group. Do some housekeeping and reset the
-            // remaining unreserved jobs to 0 to minimize the chances
-            // of too many decrements happening at the same time and
-            // the program thinking it was able to successfully reserve
-            // a job.
-            jobspan.remaining_unreserved_jobs = 0;
-        }
-    }
-#endif
 }
 
 void JobManager::movePendingJobsIntoExecQueue()
@@ -277,38 +188,6 @@ void JobManager::movePendingJobsIntoExecQueue()
             // Clear pending joblist.
             pending_joblist.clear();
         }
-#if 0
-        auto& exec_jobgroup{ m_executing_queue.groups[group_idx] };
-        auto& joblist{ m_pending_joblists[group_idx] };
-
-        // Add to total count.
-        total_jobs += joblist.size();
-
-        // Reset jobgroup.
-        exec_jobgroup.jobspans.clear();
-        exec_jobgroup.current_jobspan_idx = 0;
-
-        // Order joblist into jobspans.
-        std::map<order_t, std::vector<Job*>> ordered_joblist;
-        for (auto job : joblist)
-        {
-            ordered_joblist[job->m_order].push_back(job);
-        }
-
-        // Create jobspans.
-        exec_jobgroup.jobspans.reserve(ordered_joblist.size());
-        for (auto it = ordered_joblist.begin(); it != ordered_joblist.end(); it++)
-        {
-            JobGroup::JobSpan new_jobspan{
-                std::move(it->second),
-                it->second.size()
-            };
-            exec_jobgroup.jobspans.emplace_back(std::move(new_jobspan));
-        }
-
-        // Cleanup.
-        joblist.clear();
-#endif
 
         // Load initial joblist group.
         std::lock_guard<std::mutex> lock{ m_executing_iteration_state[group_idx] };

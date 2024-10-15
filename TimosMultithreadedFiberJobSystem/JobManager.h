@@ -41,14 +41,6 @@ private:
         (void)m_current_mode.compare_exchange_strong(from, to);
     }
 
-    /*enum FetchResult_e
-    {
-        RESULT_ALL_JOBS_COMPLETE = 0,
-        RESULT_WAIT_FOR_NEXT_BATCH,
-        RESULT_JOB_RESERVED,
-        RESULT_NO_JOB_RESERVED,
-    };*/
-
     void reserveAndExecuteNextJob(uint32_t thread_idx);
 
     inline bool isAllJobsReserved()
@@ -61,41 +53,7 @@ private:
         return (m_remaining_unfinished_jobs == 0);
     }
 
-    //FetchResult_e fetchExecutingJob(
-    //    uint8_t& out_job_group_idx,
-    //    size_t& out_jobspan_idx,
-    //    Job*& out_job_obj);
-
-    /*void reportJobFinishExecuting(uint8_t job_group_idx, size_t jobspan_idx);*/
-
-    //void waitUntilExecutingQueueUnused();
     void movePendingJobsIntoExecQueue();
-
-    /*struct JobGroup
-    {
-        struct JobSpan
-        {
-            JobSpan(std::vector<Job*>&& jobs, std::size_t total_jobs)
-                : jobs(std::move(jobs))
-                , remaining_unreserved_jobs(total_jobs)
-                , remaining_unfinished_jobs(total_jobs)
-            {
-            }
-
-            JobSpan(JobSpan&& other) noexcept
-                : jobs(std::move(other.jobs))
-                , remaining_unreserved_jobs(static_cast<size_t>(other.remaining_unreserved_jobs))
-                , remaining_unfinished_jobs(static_cast<size_t>(other.remaining_unfinished_jobs))
-            {
-            }
-
-            std::vector<Job*> jobs;
-            std::atomic_size_t remaining_unreserved_jobs;
-            std::atomic_size_t remaining_unfinished_jobs;
-        };
-        std::vector<JobSpan> jobspans;
-        std::atomic_size_t current_jobspan_idx;
-    };*/
 
     template <class T>
     class LockableRingQueue : public std::mutex
@@ -123,7 +81,7 @@ private:
             m_elements[m_back_idx] = elem;
             m_back_idx = offset_idx(m_back_idx, 1);
 #ifdef _DEBUG
-            m_debug_counter++;  // @FIXME: even tho the jobs should all get popped off before filling in more jobs, occasionally (like around 1/25 times) the consumer queues get filled with over 1000 jobs even though the job solicitation thingo is just inserting 100 jobs, which should get divided up into multiple cores. However, the pending joblists indicate up to 900 jobs coming from the 100 job thing. idk what is happening imo.
+            m_debug_counter++;  // @DEBUG: just to see if buffer overflows again (view value in debugger).
 #endif
             assert(!is_empty());
         }
@@ -161,19 +119,6 @@ private:
 
     template <class T>
     class LockableVector : public std::vector<T>, public std::mutex { };
-
-    // When queuing up jobs, the currently executing packed
-    // set of jobs `executingGroups` must be immutable.
-    // If new jobs are added such as deleting an object, the
-    // job will be only added into the next executing group.
-
-    //struct JobQueue
-    //{
-    //    std::array<JobGroup, JobGroup_e::NUM_JOB_GROUPS> groups;
-    //    std::atomic_size_t remaining_unreserved_jobs;
-    //    std::atomic_size_t remaining_unfinished_jobs;
-    //    //std::atomic_size_t num_threads_using_executing_queue;
-    //} m_executing_queue;
 
     std::atomic_size_t m_remaining_unreserved_jobs{ 0 };
     std::atomic_size_t m_remaining_unfinished_jobs{ 0 };
