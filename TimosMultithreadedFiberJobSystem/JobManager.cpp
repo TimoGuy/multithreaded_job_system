@@ -35,6 +35,14 @@ void JobManager::executeNextJob(uint32_t thread_idx)
     ZoneScoped;
 
     // State Machine.
+
+    // @TODO: okay, looks like the state machine thing is very broken, very not good bc of some states
+    //        meaning to only allow one thread in but multiple enter while the state changed. I think
+    //        that there needs to be some kind of only one may enter kind of primitive or class/struct.
+    //        So make that eh????
+    // @REPLY: I think that the best thing to do is have a compare and exchange into the singlethreaded mode
+    //         and just have that single threaded mode rerun the whole job refilling, party list mutating logic.
+
     switch (m_current_mode)
     {
     case MODE_MUTATE_PARTY_LIST:
