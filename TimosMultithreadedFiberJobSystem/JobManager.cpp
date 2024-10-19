@@ -37,13 +37,6 @@ void JobManager::executeNextJob(uint32_t thread_idx)
     // State Machine.
     switch (m_current_mode)
     {
-    case MODE_MUTATE_PARTY_LIST:
-        // @TODO: add entities and stuff and mutate the entity list
-        //        here. For now, just move to the next state.
-
-        transitionCurrentModeAtomic(MODE_MUTATE_PARTY_LIST, MODE_GATHER_JOBS);
-        break;
-
     case MODE_GATHER_JOBS:
     {
         // Force only one thread to execute this mode by forcing
@@ -98,7 +91,7 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         {
             transitionCurrentModeAtomic(
                 MODE_WAIT_UNTIL_EXECUTION_FINISHED,
-                MODE_MUTATE_PARTY_LIST
+                MODE_GATHER_JOBS
             );
         }
         break;

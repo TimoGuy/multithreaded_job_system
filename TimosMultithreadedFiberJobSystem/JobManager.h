@@ -26,14 +26,13 @@ private:
 
     enum Mode_e : uint8_t
     {
-        MODE_MUTATE_PARTY_LIST = 0,
-        MODE_GATHER_JOBS,
+        MODE_GATHER_JOBS = 0,
         MODE_RESERVE_AND_EXECUTE_JOBS,
         MODE_WAIT_UNTIL_EXECUTION_FINISHED,
 
         NUM_MODES,
     };
-    std::atomic<Mode_e> m_current_mode{ MODE_MUTATE_PARTY_LIST };
+    std::atomic<Mode_e> m_current_mode{ MODE_GATHER_JOBS };
     std::mutex m_gather_jobs_mutex;
 
     inline void transitionCurrentModeAtomic(Mode_e from, Mode_e to)
@@ -61,7 +60,7 @@ private:
     public:
         LockableRingQueue() = default;
 
-        LockableRingQueue(LockableRingQueue<T>&& other)
+        LockableRingQueue(LockableRingQueue<T>&& other) noexcept
             : m_elements(std::move(other.m_elements))
             , m_front_idx(other.m_front_idx)
             , m_back_idx(other.m_back_idx)
