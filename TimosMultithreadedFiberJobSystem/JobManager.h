@@ -10,20 +10,17 @@
 #include "JobGroupType.h"
 
 
+using job_manager_callback_fn_t = std::function<std::vector<Job*>()>;
+
 class JobManager
 {
 public:
-    JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn, uint32_t num_consumer_queues);
-
-    // To be executed during job execution or in `on_empty_jobs_fn`.
-    void emplaceJob(Job* job);  // @TODO: if executed during job execution, need to add a mutex on emplacing jobs.
+    JobManager(job_manager_callback_fn_t& on_empty_jobs_fn, uint32_t num_consumer_queues);
 
     // To be executed by each individual worker thread.
     void executeNextJob(uint32_t thread_idx);
 
 private:
-    void emplaceJobNoLock(Job* job);
-
     enum Mode_e : uint8_t
     {
         MODE_GATHER_JOBS = 0,
@@ -134,11 +131,6 @@ private:
     void loadJoblistGroupIntoConsumerQueues(JobGroup_e job_group, uint32_t group_idx);
 
     std::array<LockableVector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
-    //std::atomic_bool m_refill_executing_queue_claimed{ false };
 
-    std::function<void(JobManager&)> m_on_empty_jobs_fn;
-#ifdef _DEBUG
-    std::atomic_bool m_is_in_job_switch{ false };
-#endif
+    job_manager_callback_fn_t& m_on_empty_jobs_fn;
 };
-

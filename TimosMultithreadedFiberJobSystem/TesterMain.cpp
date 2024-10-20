@@ -23,15 +23,19 @@ static bool workerThreadFn(JobManager& job_mgr, uint32_t thread_idx)
 
 static std::vector<std::unique_ptr<Job>> all_jobs;
 
-static void solicitJobsFn(JobManager& job_mgr)
-{
-    ZoneScoped;
-
-    for (auto& job : all_jobs)
+static job_manager_callback_fn_t solicit_jobs_fn =
+    [&]()
     {
-        job_mgr.emplaceJob(job.get());
-    }
-}
+        std::vector<Job*> all_jobs_non_owning;
+        all_jobs_non_owning.reserve(all_jobs.size());
+
+        for (auto& job : all_jobs)
+        {
+            all_jobs_non_owning.emplace_back(job.get());
+        }
+
+        return all_jobs_non_owning;
+    };
 
 int32_t main()
 {
@@ -43,7 +47,7 @@ int32_t main()
 
     // Create job manager.
     std::unique_ptr<JobManager> job_mgr{
-        std::make_unique<JobManager>(std::move(solicitJobsFn), num_cores)
+        std::make_unique<JobManager>(solicit_jobs_fn, num_cores)
     };
 
     // Create a bunch of jobs.

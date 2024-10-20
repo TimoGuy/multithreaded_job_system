@@ -6,26 +6,12 @@
 #include "TracyImpl.h"
 
 
-JobManager::JobManager(std::function<void(JobManager&)>&& on_empty_jobs_fn, uint32_t num_consumer_queues)
+JobManager::JobManager(job_manager_callback_fn_t& on_empty_jobs_fn, uint32_t num_consumer_queues)
     : m_on_empty_jobs_fn(on_empty_jobs_fn)
 {
     ZoneScoped;
 
     m_consumer_queues.resize(num_consumer_queues);
-
-    // @NOTE: Setting this to 0 will trigger populating a new
-    //        round of jobs upon the first `executeNextJob()`.
-    m_remaining_unfinished_jobs = 0;
-}
-
-void JobManager::emplaceJob(Job* job)
-{
-    ZoneScoped;
-
-    // @TODO: add lock if `emplaceJob()` is called
-    //        from inside a job.
-
-    emplaceJobNoLock(job);
 }
 
 // @NOTE: it's assumed that this isn't executed while the pending
@@ -46,17 +32,18 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         if (m_current_mode == MODE_GATHER_JOBS)
         {
             // Solicit jobs and perform sorting.
-            if (m_on_empty_jobs_fn)
+            std::vector<Job*> solicited_all_jobs{ std::move(m_on_empty_jobs_fn()) };
+            for (auto& pending_joblist : m_pending_joblists)
             {
-                // @TEMP: @INCOMPLETE: fix how to do job loading.
-                for (auto& pending_joblist : m_pending_joblists)
-                    pending_joblist.lock();
-
-                m_on_empty_jobs_fn(*this);
-
-                // @TEMP: @INCOMPLETE: fix how to do job loading.
-                for (auto& pending_joblist : m_pending_joblists)
-                    pending_joblist.unlock();
+                pending_joblist.lock();
+            }
+            for (auto job : solicited_all_jobs)
+            {
+                m_pending_joblists[job->m_group].push_back(job);
+            }
+            for (auto& pending_joblist : m_pending_joblists)
+            {
+                pending_joblist.unlock();
             }
 
             movePendingJobsIntoExecQueue();
@@ -96,12 +83,6 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         }
         break;
     }
-}
-
-void JobManager::emplaceJobNoLock(Job* job)
-{
-    ZoneScoped;
-    m_pending_joblists[job->m_group].push_back(job);
 }
 
 void JobManager::reserveAndExecuteNextJob(uint32_t thread_idx)
