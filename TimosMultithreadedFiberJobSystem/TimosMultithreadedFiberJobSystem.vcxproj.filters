@@ -50,5 +50,8 @@
     <ClInclude Include="tracy\tracy\Tracy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="JobStatistics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

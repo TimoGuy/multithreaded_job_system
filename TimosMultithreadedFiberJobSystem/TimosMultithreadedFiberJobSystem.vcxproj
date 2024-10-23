@@ -87,6 +87,7 @@
     <ClInclude Include="Job.h" />
     <ClInclude Include="JobGroupType.h" />
     <ClInclude Include="JobManager.h" />
+    <ClInclude Include="JobStatistics.h" />
     <ClInclude Include="SimpleJob.h" />
     <ClInclude Include="TracyImpl.h" />
     <ClInclude Include="tracy\tracy\Tracy.hpp" />
