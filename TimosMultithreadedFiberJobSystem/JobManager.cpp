@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>  // @TEMP
 #include "TracyImpl.h"
+#include "JobStatistics.h"
 
 
 JobManager::JobManager(job_manager_callback_fn_t& on_empty_jobs_fn, uint32_t num_consumer_queues)
@@ -31,6 +32,13 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         std::lock_guard<std::mutex> lock{ m_gather_jobs_mutex };
         if (m_current_mode == MODE_GATHER_JOBS)
         {
+#if JOBSTATS_ENABLE
+            // Get stats report.
+            std::cout
+                << "======================================================"
+                << JOBSTATS_GENERATE_REPORT;
+#endif
+
             // Solicit jobs and perform sorting.
             std::vector<Job*> solicited_all_jobs{ std::move(m_on_empty_jobs_fn()) };
             for (auto& pending_joblist : m_pending_joblists)
@@ -107,7 +115,9 @@ void JobManager::reserveAndExecuteNextJob(uint32_t thread_idx)
     m_remaining_unreserved_jobs--;
 
     // Execute job.
+    JOBSTATS_RECORD_START(job->m_name);
     job->execute();
+    JOBSTATS_RECORD_END;
 
     // Publish finish of job.
     auto& s{ m_executing_iteration_state[job->m_group] };
