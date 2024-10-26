@@ -12,11 +12,11 @@ Job::Job(std::string&& name, JobGroup_e group, order_t order)
 {
 }
 
-std::string&& Job::toString() const
+std::string Job::toString() const
 {
     ZoneScoped;
     std::stringstream sstr;
     sstr << "Job " << m_job_id << ":\tname=\"" << m_name
         << "\"\tgroup=" << job_group_to_str[m_group] << "\torder=" << m_order;
-    return std::move(sstr.str());
+    return sstr.str();
 }

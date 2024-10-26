@@ -13,7 +13,7 @@ public:
     Job(std::string&& name, JobGroup_e group, order_t order);
 
     virtual int32_t execute() = 0;
-    std::string&& toString() const;
+    std::string toString() const;
 
 protected:
     uint64_t m_job_id;

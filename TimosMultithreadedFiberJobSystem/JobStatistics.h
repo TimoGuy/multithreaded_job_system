@@ -1,6 +1,6 @@
 #pragma once
 
-#define JOBSTATS_ENABLE 1
+#define JOBSTATS_ENABLE 0
 #if JOBSTATS_ENABLE
 
 #include <string>
@@ -29,7 +29,7 @@ struct LockableJobStatConglomeration : public std::mutex
 inline static std::unordered_map<std::string, LockableJobStatConglomeration> job_name_to_stat_cong_map;
 inline static std::mutex job_name_to_stat_cong_map_mutex;
 
-std::string&& generate_stats_report()
+std::string generate_stats_report()
 {
     std::stringstream sstr;
     std::lock_guard<std::mutex> lock{ job_name_to_stat_cong_map_mutex };
@@ -40,7 +40,7 @@ std::string&& generate_stats_report()
         sstr << it->first << ": " << job_stat.avg_duration_stat << "ns" << std::endl;
     }
 
-    return std::move(sstr.str());
+    return sstr.str();
 }
 
 class JobStatEntry

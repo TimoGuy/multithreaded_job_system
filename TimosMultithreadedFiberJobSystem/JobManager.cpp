@@ -33,10 +33,15 @@ void JobManager::executeNextJob(uint32_t thread_idx)
         if (m_current_mode == MODE_GATHER_JOBS)
         {
 #if JOBSTATS_ENABLE
-            // Get stats report.
-            std::cout
-                << "======================================================"
-                << JOBSTATS_GENERATE_REPORT;
+            static std::atomic_uint32_t jobstats_generate_report_counter{ 0 };
+            constexpr uint32_t jobstats_generate_report_interval{ 100 };
+            if (jobstats_generate_report_counter++ % jobstats_generate_report_interval == 0)
+            {
+                // Get stats report.
+                std::cout
+                    << "======================================================" << std::endl
+                    << JOBSTATS_GENERATE_REPORT << std::endl;
+            }
 #endif
 
             // Solicit jobs and perform sorting.
