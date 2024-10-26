@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include "TracyImpl.h"
+#include "JobStatistics.h"
 
 
 Job::Job(std::string&& name, JobGroup_e group, order_t order)
@@ -10,6 +11,7 @@ Job::Job(std::string&& name, JobGroup_e group, order_t order)
     , m_group(group)
     , m_order(order)
 {
+    JOBSTATS_REGISTER_JOB_NAME(m_name);
 }
 
 std::string Job::toString() const

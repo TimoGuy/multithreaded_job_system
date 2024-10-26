@@ -1,6 +1,6 @@
 #pragma once
 
-#define JOBSTATS_ENABLE 0
+#define JOBSTATS_ENABLE 1
 #if JOBSTATS_ENABLE
 
 #include <string>
@@ -9,9 +9,10 @@
 #include <unordered_map>
 #include <mutex>
 
-#define JOBSTATS_RECORD_START(x) job_statistics::JobStatEntry new_jobstat_record{ x }
-#define JOBSTATS_RECORD_END      new_jobstat_record.endTimer()
-#define JOBSTATS_GENERATE_REPORT job_statistics::generate_stats_report()
+#define JOBSTATS_REGISTER_JOB_NAME(x) job_statistics::register_job_name(x)
+#define JOBSTATS_RECORD_START(x)      job_statistics::JobStatEntry new_jobstat_record{ x }
+#define JOBSTATS_RECORD_END           new_jobstat_record.endTimer()
+#define JOBSTATS_GENERATE_REPORT      job_statistics::generate_stats_report()
 
 namespace job_statistics
 {
@@ -29,19 +30,8 @@ struct LockableJobStatConglomeration : public std::mutex
 inline static std::unordered_map<std::string, LockableJobStatConglomeration> job_name_to_stat_cong_map;
 inline static std::mutex job_name_to_stat_cong_map_mutex;
 
-std::string generate_stats_report()
-{
-    std::stringstream sstr;
-    std::lock_guard<std::mutex> lock{ job_name_to_stat_cong_map_mutex };
-    for (auto it = job_name_to_stat_cong_map.begin(); it != job_name_to_stat_cong_map.end(); it++)
-    {
-        auto& job_stat{ it->second };
-        std::lock_guard<std::mutex> lock{ job_stat };
-        sstr << it->first << ": " << job_stat.avg_duration_stat << "ns" << std::endl;
-    }
-
-    return sstr.str();
-}
+void register_job_name(const std::string& name);
+std::string generate_stats_report();
 
 class JobStatEntry
 {
@@ -59,10 +49,7 @@ public:
         };
 
         // Mix stat entry into stat conglomeration.
-        job_name_to_stat_cong_map_mutex.lock();
         auto& stat{ job_name_to_stat_cong_map[m_job_name] };
-        job_name_to_stat_cong_map_mutex.unlock();
-
         std::lock_guard<std::mutex> lock{ stat };
 
         if (stat.num_entries == 0)
@@ -87,6 +74,7 @@ private:
 }
 
 #else
+#define JOBSTATS_REGISTER_JOB_NAME(x)
 #define JOBSTATS_RECORD_START(x)
 #define JOBSTATS_RECORD_END
 #define JOBSTATS_GENERATE_REPORT

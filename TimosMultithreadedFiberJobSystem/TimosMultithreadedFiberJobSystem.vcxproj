@@ -79,6 +79,7 @@
   <ItemGroup>
     <ClCompile Include="Job.cpp" />
     <ClCompile Include="JobManager.cpp" />
+    <ClCompile Include="JobStatistics.cpp" />
     <ClCompile Include="SimpleJob.cpp" />
     <ClCompile Include="TesterMain.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
