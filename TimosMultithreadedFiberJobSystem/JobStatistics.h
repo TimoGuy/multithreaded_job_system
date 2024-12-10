@@ -1,6 +1,6 @@
 #pragma once
 
-#define JOBSTATS_ENABLE 1
+#define JOBSTATS_ENABLE 0
 #if JOBSTATS_ENABLE
 
 #include <string>

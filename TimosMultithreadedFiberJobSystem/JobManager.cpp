@@ -43,6 +43,8 @@ void JobManager::executeNextJob(uint32_t thread_idx)
                     << JOBSTATS_GENERATE_REPORT << std::endl;
             }
 #endif
+            static std::atomic_uint32_t jojojojooj{ 0 };
+            std::cout << jojojojooj++ << std::endl;
 
             // Solicit jobs and perform sorting.
             std::vector<Job*> solicited_all_jobs{ std::move(m_on_empty_jobs_fn()) };

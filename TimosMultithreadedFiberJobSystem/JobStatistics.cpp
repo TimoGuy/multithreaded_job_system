@@ -1,6 +1,8 @@
 #include "JobStatistics.h"
 
 
+#if JOBSTATS_ENABLE
+
 void job_statistics::register_job_name(const std::string& name)
 {
     std::lock_guard<std::mutex> lock{ job_name_to_stat_cong_map_mutex };
@@ -22,3 +24,5 @@ std::string job_statistics::generate_stats_report()
 
     return sstr.str();
 }
+
+#endif
