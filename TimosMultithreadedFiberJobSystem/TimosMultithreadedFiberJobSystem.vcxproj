@@ -93,6 +93,9 @@
     <ClInclude Include="TracyImpl.h" />
     <ClInclude Include="tracy\tracy\Tracy.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="v3_plans.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
