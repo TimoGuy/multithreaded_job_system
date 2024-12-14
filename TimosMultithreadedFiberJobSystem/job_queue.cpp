@@ -48,7 +48,9 @@ Job* Job_queue::pop_front_job__thread_safe_weak()
 bool Job_queue::append_jobs_back__thread_safe(std::vector<Job*> jobs)
 {
     // Reserve write amount.
-    looping_numeric_t reserved_idx_base{ (m_reservation_back_idx += jobs.size()) - jobs.size() };
+    looping_numeric_t reserved_idx_base{
+        static_cast<looping_numeric_t>((m_reservation_back_idx += jobs.size()) - jobs.size())
+    };
 
     // Write.
     for (size_t i = 0; i < jobs.size(); i++)
