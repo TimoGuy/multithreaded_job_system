@@ -194,3 +194,37 @@ we need an abstracted interface for this.
 - No mutex uses. Use fences instead.
 - Use atomics where possible
 - No deadlocking this time.
+
+
+## Interfaces
+
+```cpp
+
+// Job Queue Interface.
+Job* pop_front_job__thread_safe();  // returns `nullptr` if no jobs to pop.
+bool append_jobs_back__thread_safe(std::vector<Job*> jobs);  // returns `false` if underlying structure is unable to accommodate the jobs.
+
+// Job Source Interface.
+std::vector<Job*> fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak();  // Contains the check, "try lock" (just a compare-exchange), and the fetch of the jobs. Just run this at every tick for each thread in charge of the jobs thread.
+void notify_one_job_complete__thread_safe();  // Essentially just counts down by 1 atomically.
+
+// The way I'm thinking of using the interfaces.
+for (auto& my_job_source : my_job_sources)
+{
+	auto new_jobs{ my_job_source.fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak() };
+	if (!new_jobs.empty())
+		if (!append_jobs_back__thread_safe(new_jobs))
+		{
+			std::err << "Appending jobs to queue failed." << std::endl;
+			assert(false);
+		}
+}
+if (auto job{ pop_front_job__thread_safe() })
+{
+	job->execute();
+	job->job_source->notify_one_job_complete__thread_safe();
+}
+
+```
+
+> NOTE: After doing a jobs pull from a source and appending the jobs to the job queue, a memory fence is needed to ensure that the atomics all got written correctly.
