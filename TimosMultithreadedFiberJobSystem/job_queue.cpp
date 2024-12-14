@@ -14,7 +14,15 @@ Job* Job_queue::pop_front_job__thread_safe_weak()
     // Check if buffer is empty.
     if (front_idx == back_idx)
     {
-        // Size is zero (Assume size of zero, however, size could be full).
+        // Size is zero (Assume size of zero, however, size could be full, which,
+        // in that case, should definitely not return null, but I'm just eating
+        // this edge case to reduce the number of atomic operations).
+        // @NOTE: Unfortunately, this janky CAS size check causes more atomic
+        //        operations (we could've done a pop in 1 atomic op instead of
+        //        the 4 you see in this function, on top of CAS weak causing an
+        //        intermittent failure), but I think this is the best we'll get
+        //        bc I don't wanna use locks, and idk if fences can accomplish
+        //        a better memory contiguity.  -Thea 2024/12/14
         ptr = nullptr;
     }
     else
