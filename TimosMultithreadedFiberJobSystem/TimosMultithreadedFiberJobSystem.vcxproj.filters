@@ -33,6 +33,12 @@
     <ClCompile Include="JobStatistics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="job_source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="job_queue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Job.h">
@@ -54,6 +60,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="JobStatistics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="job_source.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="job_queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
