@@ -59,7 +59,26 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job*> jobs)
     }
 
     // Update back idx once write has finished.
-    m_back_idx += jobs.size();
+    looping_numeric_t reserved_idx_base_copy;
+    looping_numeric_t desired_back_idx{ reserved_idx_base + jobs.size()};
+    constexpr size_t k_weak_check_loops{ 100 };
+
+    for (size_t i = 0; i < k_weak_check_loops; i++)
+    {
+        // @NOTE: Due to the possibility that multiple append writing jobs could
+        //        be happening at the same time, the buffer must not expand the
+        //        `m_back_idx` into a group of half-written pointers, given the
+        //        hypothetical situation where two append func calls are racing
+        //        and the later-reserving one finishes and writes to `m_back_idx`
+        //        first.  -Thea 2024/12/14
+        reserved_idx_base_copy = reserved_idx_base;
+        if (m_back_idx.compare_exchange_weak(reserved_idx_base_copy, desired_back_idx))
+        {
+            // Successfully able to update back idx.
+            break;
+        }
+        assert(i != k_weak_check_loops - 1);  // @TODO: this might be good to be an error message in release.
+    }
 
     // @TODO: Add debug level check that the size isn't getting too large to
     //        start overwriting the looping array, so then the return bool provides
