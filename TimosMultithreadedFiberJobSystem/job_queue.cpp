@@ -60,7 +60,9 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job*> jobs)
 
     // Update back idx once write has finished.
     looping_numeric_t reserved_idx_base_copy;
-    looping_numeric_t desired_back_idx{ reserved_idx_base + jobs.size()};
+    looping_numeric_t desired_back_idx{
+        static_cast<looping_numeric_t>(reserved_idx_base + jobs.size())
+    };
     constexpr size_t k_weak_check_loops{ 100 };
 
     for (size_t i = 0; i < k_weak_check_loops; i++)
