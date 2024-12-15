@@ -82,6 +82,7 @@
     <ClCompile Include="job_queue.cpp" />
     <ClCompile Include="job_source.cpp" />
     <ClCompile Include="JobStatistics.cpp" />
+    <ClCompile Include="job_system.cpp" />
     <ClCompile Include="SimpleJob.cpp" />
     <ClCompile Include="TesterMain.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
@@ -93,6 +94,7 @@
     <ClInclude Include="job_queue.h" />
     <ClInclude Include="job_source.h" />
     <ClInclude Include="JobStatistics.h" />
+    <ClInclude Include="job_system.h" />
     <ClInclude Include="SimpleJob.h" />
     <ClInclude Include="TracyImpl.h" />
     <ClInclude Include="tracy\tracy\Tracy.hpp" />

@@ -189,6 +189,11 @@ Ahhhhh actually it would just be fine to be its own member function. That would 
 we need an abstracted interface for this.
 
 
+## Job abstraction.
+
+> @TODO FIGURE THIS OUT!!!!
+
+
 ## Wishlist
 
 - No mutex uses. Use fences instead.

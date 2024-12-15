@@ -24,6 +24,11 @@ std::vector<Job*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thread_
 
 void Job_source::notify_one_job_complete__thread_safe()
 {
-    assert(m_num_jobs_incomplete != 0);
-    m_num_jobs_incomplete--;
+#if _DEBUG
+    uint32_t before_decrement_val =
+#endif
+        m_num_jobs_incomplete--;
+#if _DEBUG
+    assert(before_decrement_val != 0);
+#endif
 }
