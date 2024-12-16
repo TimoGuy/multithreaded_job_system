@@ -15,7 +15,7 @@ std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thr
         jobs = fetch_next_jobs_callback();
 
         // Mark number incomplete jobs (allows another thread to enter this block again).
-        m_num_jobs_incomplete = static_cast<uint32_t>(jobs.size());
+        m_num_jobs_incomplete = static_cast<uint32_t>(jobs.size());  // @TODO: @THEA: I guess this value isn't getting written to fast enough??? Figure out why `notify_one_job_complete__thread_safe()` keeps getting run.
     }
 
     return jobs;
