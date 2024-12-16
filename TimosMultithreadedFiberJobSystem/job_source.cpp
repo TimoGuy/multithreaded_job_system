@@ -3,9 +3,9 @@
 #include <cassert>
 
 
-std::vector<Job*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()
+std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()
 {
-    std::vector<Job*> jobs;
+    std::vector<Job_ifc*> jobs;
 
     // Check if no more jobs.
     uint32_t zero{ 0 };

@@ -8,7 +8,7 @@
 class Job_system
 {
 public:
-    Job_system(uint32_t num_threads, std::vector<Job_source>&& job_sources);
+    Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sources);
 
     bool run();
 
@@ -28,5 +28,5 @@ private:
         std::vector<Job_source*> responsible_job_sources;
     };
     std::vector<Thread_construction_data> m_thread_construct_datas;
-    std::vector<Job_source> m_job_sources;
+    std::vector<Job_source*> m_job_sources;
 };

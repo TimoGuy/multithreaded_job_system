@@ -4,7 +4,7 @@
 #include <iostream>
 
 
-Job* Job_queue::pop_front_job__thread_safe_weak()
+Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 {
     void* ptr;
 
@@ -42,10 +42,10 @@ Job* Job_queue::pop_front_job__thread_safe_weak()
         }
     }
 
-    return reinterpret_cast<Job*>(ptr);
+    return reinterpret_cast<Job_ifc*>(ptr);
 }
 
-bool Job_queue::append_jobs_back__thread_safe(std::vector<Job*> jobs)
+bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
 {
     // Reserve write amount.
     looping_numeric_t reserved_idx_base{

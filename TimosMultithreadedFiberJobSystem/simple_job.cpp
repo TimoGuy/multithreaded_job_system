@@ -1,11 +1,11 @@
-#include "SimpleJob.h"
+#include "simple_job.h"
 
 #include <thread>
 #include <iostream>
 #include "TracyImpl.h"
 
 
-int32_t SimpleJob::execute()
+int32_t Simple_job::execute()
 {
     ZoneScoped;
  

@@ -47,7 +47,7 @@ void JobManager::executeNextJob(uint32_t thread_idx)
             std::cout << jojojojooj++ << std::endl;
 
             // Solicit jobs and perform sorting.
-            std::vector<Job*> solicited_all_jobs{ std::move(m_on_empty_jobs_fn()) };
+            std::vector<Job_ifc*> solicited_all_jobs{ std::move(m_on_empty_jobs_fn()) };
             for (auto& pending_joblist : m_pending_joblists)
             {
                 pending_joblist.lock();
@@ -104,7 +104,7 @@ void JobManager::reserveAndExecuteNextJob(uint32_t thread_idx)
 {
     // Reserve a job.
     uint32_t queue_idx{ thread_idx };
-    Job* job{ getJobFromConsumerQueue(true, queue_idx) };
+    Job_ifc* job{ getJobFromConsumerQueue(true, queue_idx) };
     while (job == nullptr)
     {
         queue_idx = (queue_idx + 1) % m_consumer_queues.size();
@@ -162,7 +162,7 @@ void JobManager::movePendingJobsIntoExecQueue()
             total_jobs += pending_joblist.size();
 
             // Order joblist order into spans.
-            std::map<order_t, std::vector<Job*>> joblist_spans;
+            std::map<order_t, std::vector<Job_ifc*>> joblist_spans;
             for (auto job : pending_joblist)
             {
                 joblist_spans[job->m_order].push_back(job);
@@ -190,10 +190,10 @@ void JobManager::movePendingJobsIntoExecQueue()
     m_remaining_unfinished_jobs = total_jobs;
 }
 
-Job* JobManager::getJobFromConsumerQueue(bool block, uint32_t queue_idx)
+Job_ifc* JobManager::getJobFromConsumerQueue(bool block, uint32_t queue_idx)
 {
     auto& queue = m_consumer_queues[queue_idx];
-    Job* job{ nullptr };
+    Job_ifc* job{ nullptr };
 
     // Start access.
     bool lock_success;
@@ -220,7 +220,7 @@ Job* JobManager::getJobFromConsumerQueue(bool block, uint32_t queue_idx)
     return job;
 }
 
-void JobManager::insertJobsIntoConsumerQueues(std::vector<Job*>&& jobs)
+void JobManager::insertJobsIntoConsumerQueues(std::vector<Job_ifc*>&& jobs)
 {
     uint32_t total_jobs{ static_cast<uint32_t>(jobs.size()) };
     uint32_t num_jobs_per_queue{

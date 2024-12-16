@@ -6,11 +6,11 @@
 #include <functional>
 #include <mutex>
 #include <cassert>
-#include "Job.h"
+#include "job_ifc.h"
 #include "JobGroupType.h"
 
 
-using job_manager_callback_fn_t = std::function<std::vector<Job*>()>;
+using job_manager_callback_fn_t = std::function<std::vector<Job_ifc*>()>;
 
 class JobManager
 {
@@ -108,10 +108,10 @@ private:
 #endif
     };
 
-    std::vector<LockableRingQueue<Job*>> m_consumer_queues;
+    std::vector<LockableRingQueue<Job_ifc*>> m_consumer_queues;
 
-    Job* getJobFromConsumerQueue(bool block, uint32_t queue_idx);
-    void insertJobsIntoConsumerQueues(std::vector<Job*>&& jobs);
+    Job_ifc* getJobFromConsumerQueue(bool block, uint32_t queue_idx);
+    void insertJobsIntoConsumerQueues(std::vector<Job_ifc*>&& jobs);
 
     template <class T>
     class LockableVector : public std::vector<T>, public std::mutex { };
@@ -125,12 +125,12 @@ private:
         uint32_t remaining_unfinished_jobs;
     };
     std::array<LockableJobGroupIterationState, JobGroup_e::NUM_JOB_GROUPS> m_executing_iteration_state;
-    std::array<LockableVector<std::vector<Job*>>, JobGroup_e::NUM_JOB_GROUPS> m_executing_grouped_joblists;
+    std::array<LockableVector<std::vector<Job_ifc*>>, JobGroup_e::NUM_JOB_GROUPS> m_executing_grouped_joblists;
 
     // @NOTE: This is a non-threadsafe method!
     void loadJoblistGroupIntoConsumerQueues(JobGroup_e job_group, uint32_t group_idx);
 
-    std::array<LockableVector<Job*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
+    std::array<LockableVector<Job_ifc*>, JobGroup_e::NUM_JOB_GROUPS> m_pending_joblists;
 
     job_manager_callback_fn_t& m_on_empty_jobs_fn;
 };

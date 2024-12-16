@@ -4,21 +4,21 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-#include "Job.h"
+#include "job_ifc.h"
 
 
-Job_system::Job_system(uint32_t num_threads, std::vector<Job_source>&& job_sources)
+Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sources)
     : m_job_sources(std::move(job_sources))
 {
     assert(num_threads > 0);
     m_thread_construct_datas.resize(num_threads, {});
     for (size_t i = 0; i < m_job_sources.size(); i++)
     {
-        auto& job_source{ m_job_sources[i] };
+        auto job_source{ m_job_sources[i] };
         auto& tcd{
             m_thread_construct_datas[i % m_thread_construct_datas.size()]
         };
-        tcd.responsible_job_sources.emplace_back(&job_source);
+        tcd.responsible_job_sources.emplace_back(job_source);
     }
 }
 
@@ -40,11 +40,10 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source>&& job_sourc
                 }
         }
 
-        // Execute one job.
+        // Fetch and execute one job.
         if (auto job{ job_queue->pop_front_job__thread_safe_weak() })
         {
-            job->execute();
-            job->job_source->notify_one_job_complete__thread_safe();  // @TODO: START HERE!!!! Think about if you want to have the `execute()` func be in charge of the job source getting one job complete (mmmm maybe not? I think having the job system manager taking care of it is perfectly fine.
+            job->execute_and_record_completion__thread_safe();
         }
     }
 }

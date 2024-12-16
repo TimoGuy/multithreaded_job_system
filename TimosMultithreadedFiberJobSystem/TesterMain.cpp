@@ -7,7 +7,7 @@
 #include <thread>
 
 #include "JobManager.h"
-#include "SimpleJob.h"
+#include "simple_job.h"
 #include "TracyImpl.h"
 
 
@@ -21,12 +21,12 @@ static bool workerThreadFn(JobManager& job_mgr, uint32_t thread_idx)
     }
 }
 
-static std::vector<std::unique_ptr<Job>> all_jobs;
+static std::vector<std::unique_ptr<Job_ifc>> all_jobs;
 
 static job_manager_callback_fn_t solicit_jobs_fn =
     [&]()
     {
-        std::vector<Job*> all_jobs_non_owning;
+        std::vector<Job_ifc*> all_jobs_non_owning;
         all_jobs_non_owning.reserve(all_jobs.size());
 
         for (auto& job : all_jobs)
@@ -56,7 +56,7 @@ int32_t main()
     all_jobs.reserve(k_num_jobs);
     for (size_t i = 0; i < k_num_jobs; i++)
     {
-        all_jobs.emplace_back(std::make_unique<SimpleJob>());
+        all_jobs.emplace_back(std::make_unique<Simple_job>());
     }
 
     // Spin up multithreading equal to all cores of CPU.

@@ -15,16 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TesterMain.cpp">
+    <ClCompile Include="job_ifc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Job.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SimpleJob.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JobManager.cpp">
+    <ClCompile Include="simple_job.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tracy\TracyClient.cpp">
@@ -42,18 +36,21 @@
     <ClCompile Include="job_system.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="example_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simple_job_source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Job.h">
+    <ClInclude Include="job_ifc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleJob.h">
+    <ClInclude Include="simple_job.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="JobGroupType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JobManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TracyImpl.h">
@@ -72,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="job_system.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simple_job_source.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,14 +3,14 @@
 #include <atomic>
 #include <limits>
 #include <vector>
-class Job;
+class Job_ifc;
 
 
 class Job_queue
 {
 public:
-    Job* pop_front_job__thread_safe_weak();
-    bool append_jobs_back__thread_safe(std::vector<Job*> jobs);
+    Job_ifc* pop_front_job__thread_safe_weak();
+    bool append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs);
 
 private:
     // @NOTE: to prevent the need for atomic adding w/ modulus, have the
