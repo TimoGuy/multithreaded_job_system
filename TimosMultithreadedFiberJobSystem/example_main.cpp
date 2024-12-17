@@ -8,6 +8,7 @@ int32_t main()
 {
     uint32_t num_threads{
         std::thread::hardware_concurrency()
+        //32
     };
 
     Simple_job_source simple_js;

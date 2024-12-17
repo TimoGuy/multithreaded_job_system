@@ -31,7 +31,7 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
         looping_numeric_t front_idx_orig{ front_idx };  // Make a copy since it gets mutated on the CAS.
         if (m_front_idx.compare_exchange_weak(front_idx, front_idx + 1))
         {
-            // `m_front_idx` successfully moved. 
+            // `m_front_idx` successfully moved.
             ptr = m_pointer_buffer[front_idx_orig];
             assert(ptr != nullptr, "Ptr from successful pop should not be null.");
         }
@@ -55,7 +55,10 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
     // Write.
     for (size_t i = 0; i < jobs.size(); i++)
     {
-        m_pointer_buffer[reserved_idx_base + i] = reinterpret_cast<void*>(jobs[i]);
+        size_t write_idx{
+            (reserved_idx_base + i) % k_pointer_buffer_indices
+        };
+        m_pointer_buffer[write_idx] = reinterpret_cast<void*>(jobs[i]);
     }
 
     // Update back idx once write has finished.
