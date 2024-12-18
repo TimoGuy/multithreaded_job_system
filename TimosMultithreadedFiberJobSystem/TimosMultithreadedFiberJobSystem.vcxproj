@@ -85,6 +85,7 @@
     <ClCompile Include="job_system.cpp" />
     <ClCompile Include="simple_job.cpp" />
     <ClCompile Include="simple_job_source.cpp" />
+    <ClCompile Include="tester_tester_mo_bester.cpp" />
     <ClCompile Include="tracy\TracyClient.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -96,6 +97,7 @@
     <ClInclude Include="job_system.h" />
     <ClInclude Include="simple_job.h" />
     <ClInclude Include="simple_job_source.h" />
+    <ClInclude Include="tester_tester_mo_bester.h" />
     <ClInclude Include="TracyImpl.h" />
     <ClInclude Include="tracy\tracy\Tracy.hpp" />
   </ItemGroup>

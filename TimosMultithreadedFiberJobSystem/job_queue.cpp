@@ -3,6 +3,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "tester_tester_mo_bester.h"
+
 
 Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 {
@@ -24,6 +26,7 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
         //        bc I don't wanna use locks, and idk if fences can accomplish
         //        a better memory contiguity.  -Thea 2024/12/14
         ptr = nullptr;
+        //JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'f';
     }
     else
     {
@@ -33,12 +36,14 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
         {
             // `m_front_idx` successfully moved.
             ptr = m_pointer_buffer[front_idx_orig];
+            JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'p';
             assert(ptr != nullptr, "Ptr from successful pop should not be null.");
         }
         else
         {
             // `front_idx` changed from load. CAS failed, so return null.
             ptr = nullptr;
+            //JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'f';
         }
     }
 
@@ -59,6 +64,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
             (reserved_idx_base + i) % k_pointer_buffer_indices
         };
         m_pointer_buffer[write_idx] = reinterpret_cast<void*>(jobs[i]);
+        JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'e';
     }
 
     // Update back idx once write has finished.
@@ -80,6 +86,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
         if (m_back_idx.compare_exchange_weak(reserved_idx_base_copy, desired_back_idx))
         {
             // Successfully able to update back idx.
+            JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'u';
             break;
         }
         assert(i != k_weak_check_loops - 1);  // @TODO: this might be good to be an error message in release.
@@ -91,3 +98,18 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
     //        Could consider copying the pattern of `pop_front...()`
     return true;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            // @TODO: Try creating a simple char array with a bunch of characters and then an atomic counter that goes thru and starts listing events that happened up until the break. Then search the string for irregularities.

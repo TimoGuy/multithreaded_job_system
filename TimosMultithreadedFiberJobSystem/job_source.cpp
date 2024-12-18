@@ -1,6 +1,7 @@
 #include "job_source.h"
 
 #include <cassert>
+#include "tester_tester_mo_bester.h"
 
 
 std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()
@@ -13,6 +14,7 @@ std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thr
     {
         // Go fetch jobs.
         jobs = fetch_next_jobs_callback();
+        JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'j';
 
         // Mark number incomplete jobs (allows another thread to enter this block again).
         m_num_jobs_incomplete = static_cast<uint32_t>(jobs.size());  // @TODO: @THEA: I guess this value isn't getting written to fast enough??? Figure out why `notify_one_job_complete__thread_safe()` keeps getting run.
@@ -28,6 +30,7 @@ void Job_source::notify_one_job_complete__thread_safe()
     uint32_t before_decrement_val =
 #endif
         m_num_jobs_incomplete--;
+    JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'n';
 #if _DEBUG
     assert(before_decrement_val != 0);
 #endif
