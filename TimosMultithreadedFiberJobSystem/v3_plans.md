@@ -233,3 +233,11 @@ if (auto job{ pop_front_job__thread_safe() })
 ```
 
 > NOTE: After doing a jobs pull from a source and appending the jobs to the job queue, a memory fence is needed to ensure that the atomics all got written correctly.
+
+
+## Debugging notes for concurrency.
+
+Goal for a single job source:
+
+1. `fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()`
+1. Place returned jobs into the job queue

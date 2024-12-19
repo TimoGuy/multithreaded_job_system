@@ -36,6 +36,20 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
         {
             // `m_front_idx` successfully moved.
             ptr = m_pointer_buffer[front_idx_orig];
+#if _DEBUG
+            // @DEBUG: I think that somewhere along the lines it's getting all
+            //         messed up and I need to go in and move all this back to
+            //         nullptr to test it out!
+            // @NOTE: I realized that the reason why there were extra decrements
+            //        was because a valid job was getting popped off the front and
+            //        it was actually garbage. Since it had info tho bc it's a pointer
+            //        to static memory, it was still able to access the job source
+            //        to decrement the remaining jobs count!  -Thea 2024/12/19
+            // @TODO: hopefully in the future this feels unnecessary and two atomic
+            //        operations don't have to be done on the same index and garbage
+            //        can just be left in.
+            m_pointer_buffer[front_idx_orig] = nullptr;
+#endif
             JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'p';
             assert(ptr != nullptr, "Ptr from successful pop should not be null.");
         }
