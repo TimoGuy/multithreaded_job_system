@@ -9,32 +9,21 @@
 Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 {
     void* ptr;
-
-    looping_numeric_t front_idx{ m_front_idx };
-    looping_numeric_t back_idx{ m_back_idx };
+    size_t queue_size{ m_queue_size };
 
     // Check if buffer is empty.
-    if (front_idx == back_idx)
+    if (queue_size == 0)
     {
-        // Size is zero (Assume size of zero, however, size could be full, which,
-        // in that case, should definitely not return null, but I'm just eating
-        // this edge case to reduce the number of atomic operations).
-        // @NOTE: Unfortunately, this janky CAS size check causes more atomic
-        //        operations (we could've done a pop in 1 atomic op instead of
-        //        the 4 you see in this function, on top of CAS weak causing an
-        //        intermittent failure), but I think this is the best we'll get
-        //        bc I don't wanna use locks, and idk if fences can accomplish
-        //        a better memory contiguity.  -Thea 2024/12/14
+        // Buffer is empty.
         ptr = nullptr;
-        //JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'f';
     }
     else
     {
-        // Increment front index atomically.
-        looping_numeric_t front_idx_orig{ front_idx };  // Make a copy since it gets mutated on the CAS.
-        if (m_front_idx.compare_exchange_weak(front_idx, front_idx + 1))
+        // Attempt to decrement queue size.
+        if (m_queue_size.compare_exchange_weak(queue_size, queue_size - 1))
         {
-            // `m_front_idx` successfully moved.
+            // Successful queue size decrement. Take `m_front_idx`.
+            looping_numeric_t front_idx_orig{ m_front_idx++ };
             ptr = m_pointer_buffer[front_idx_orig];
 #if _DEBUG
             // @DEBUG: I think that somewhere along the lines it's getting all
@@ -50,14 +39,13 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
             //        can just be left in.
             m_pointer_buffer[front_idx_orig] = nullptr;
 #endif
-            JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'p';
+            JOJODEBUG_LOG_ACTION('p');
             assert(ptr != nullptr, "Ptr from successful pop should not be null.");
         }
         else
         {
-            // `front_idx` changed from load. CAS failed, so return null.
+            // `queue_size` changed from load. CAS failed, so return null.
             ptr = nullptr;
-            //JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'f';
         }
     }
 
@@ -67,8 +55,11 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
 {
     // Reserve write amount.
+    looping_numeric_t next_back_idx{
+        static_cast<looping_numeric_t>(m_reservation_back_idx += jobs.size())
+    };
     looping_numeric_t reserved_idx_base{
-        static_cast<looping_numeric_t>((m_reservation_back_idx += jobs.size()) - jobs.size())
+        static_cast<looping_numeric_t>(next_back_idx - jobs.size())
     };
 
     // Write.
@@ -78,29 +69,26 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
             (reserved_idx_base + i) % k_pointer_buffer_indices
         };
         m_pointer_buffer[write_idx] = reinterpret_cast<void*>(jobs[i]);
-        JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'e';
+        JOJODEBUG_LOG_ACTION('e');
     }
 
-    // Update back idx once write has finished.
-    looping_numeric_t reserved_idx_base_copy;
-    looping_numeric_t desired_back_idx{
-        static_cast<looping_numeric_t>(reserved_idx_base + jobs.size())
-    };
+    // Update queue size (in order) once write has finished.
     constexpr size_t k_weak_check_loops{ 100 };
+    looping_numeric_t reserved_idx_copy;
 
     for (size_t i = 0; i < k_weak_check_loops; i++)
     {
         // @NOTE: Due to the possibility that multiple append writing jobs could
         //        be happening at the same time, the buffer must not expand the
-        //        `m_back_idx` into a group of half-written pointers, given the
+        //        `m_queue_size` into a group of half-written pointers, given the
         //        hypothetical situation where two append func calls are racing
-        //        and the later-reserving one finishes and writes to `m_back_idx`
-        //        first.  -Thea 2024/12/14
-        reserved_idx_base_copy = reserved_idx_base;
-        if (m_back_idx.compare_exchange_weak(reserved_idx_base_copy, desired_back_idx))
+        //        and the later-reserving one finishes and writes to `m_queue_size`
+        //        first.  -Thea 2024/12/14 (2024/12/20)
+        if (m_writing_back_idx.compare_exchange_weak(reserved_idx_copy, next_back_idx))
         {
-            // Successfully able to update back idx.
-            JOJODEBUG_actions[JOJODEBUG_actions_idx++] = 'u';
+            // Successfully able to update queue size now.
+            m_queue_size += jobs.size();
+            JOJODEBUG_LOG_ACTION('u');
             break;
         }
         assert(i != k_weak_check_loops - 1);  // @TODO: this might be good to be an error message in release.
