@@ -47,7 +47,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>TRACY_ENABLE_fu;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TRACY_ENABLE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -64,7 +64,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>TRACY_ENABLE_fu;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TRACY_ENABLE;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -81,7 +81,6 @@
     <ClCompile Include="job_ifc.cpp" />
     <ClCompile Include="job_queue.cpp" />
     <ClCompile Include="job_source.cpp" />
-    <ClCompile Include="JobStatistics.cpp" />
     <ClCompile Include="job_system.cpp" />
     <ClCompile Include="simple_job.cpp" />
     <ClCompile Include="simple_job_source.cpp" />
@@ -90,15 +89,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="job_ifc.h" />
-    <ClInclude Include="JobGroupType.h" />
     <ClInclude Include="job_queue.h" />
     <ClInclude Include="job_source.h" />
-    <ClInclude Include="JobStatistics.h" />
     <ClInclude Include="job_system.h" />
     <ClInclude Include="simple_job.h" />
     <ClInclude Include="simple_job_source.h" />
     <ClInclude Include="tester_tester_mo_bester.h" />
-    <ClInclude Include="TracyImpl.h" />
+    <ClInclude Include="tracy_impl.h" />
     <ClInclude Include="tracy\tracy\Tracy.hpp" />
   </ItemGroup>
   <ItemGroup>

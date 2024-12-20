@@ -4,10 +4,13 @@
 #include <iostream>
 
 #include "tester_tester_mo_bester.h"
+#include "tracy_impl.h"
 
 
 Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 {
+    ZoneScoped;
+
     void* ptr;
     size_t queue_size{ m_queue_size };
 
@@ -54,6 +57,8 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
 
 bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
 {
+    ZoneScoped;
+
     // Reserve write amount.
     looping_numeric_t next_back_idx{
         static_cast<looping_numeric_t>(m_reservation_back_idx += jobs.size())

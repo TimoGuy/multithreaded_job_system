@@ -2,7 +2,7 @@
 
 #include <thread>
 #include <iostream>
-#include "TracyImpl.h"
+#include "tracy_impl.h"
 
 
 int32_t Simple_job::execute()

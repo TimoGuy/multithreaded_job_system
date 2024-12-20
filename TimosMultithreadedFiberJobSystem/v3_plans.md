@@ -241,3 +241,14 @@ Goal for a single job source:
 
 1. `fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()`
 1. Place returned jobs into the job queue
+1. OKAYU UPDATE!!! I figured out the `front_idx` and `back_idx` were just getting off in the ring buffer. After fixing those issues it works great!!!
+
+
+
+## Benchmarking with profiler (debug mode).
+
+- `pop_front_job__thread_safe_weak()`: 145ns
+- `append_jobs_back__thread_safe()`: 875ns (4 jobs, 1 job source)
+- `notify_one_job_complete__thread_safe()`: 192ns
+- `fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()`: 453ns
+- TOTAL: 1665ns (0.001665ms) <- I think this is a really good metric for overhead.
