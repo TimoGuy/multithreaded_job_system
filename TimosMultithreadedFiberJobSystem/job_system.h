@@ -21,7 +21,7 @@ private:
     // Set this static flag to false to stop execution of all job systems.
     inline static bool s_is_running{ true };
 
-    static void thread_run_fn(std::vector<Job_source*> job_sources_to_check, Job_queue* job_queue);
+    static void thread_run_fn(size_t thread_idx, std::vector<Job_source*> job_sources_to_check, Job_queue* job_queue);
 
     struct Thread_construction_data
     {

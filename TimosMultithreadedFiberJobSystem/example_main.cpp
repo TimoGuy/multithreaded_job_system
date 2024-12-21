@@ -12,13 +12,19 @@ int32_t main()
 
     uint32_t num_threads{
         //std::thread::hardware_concurrency()
-        16
+        2
     };
 
     Simple_job_source simple_js;
+    Simple_job_source simple_js2;
+    Simple_job_source simple_js3;
+    Simple_job_source simple_js4;
 
     std::vector<Job_source*> job_sources{
         &simple_js,
+        &simple_js2,
+        //&simple_js3,
+        //&simple_js4,
     };
 
     Job_system job_system{

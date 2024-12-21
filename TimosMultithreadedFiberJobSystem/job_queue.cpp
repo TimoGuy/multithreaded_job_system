@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <iostream>
-
 #include "tester_tester_mo_bester.h"
 #include "tracy_impl.h"
 
@@ -42,7 +41,8 @@ Job_ifc* Job_queue::pop_front_job__thread_safe_weak()
             //        can just be left in.
             m_pointer_buffer[front_idx_orig] = nullptr;
 #endif
-            JOJODEBUG_LOG_ACTION('p');
+            char jojo = JOJODEBUG_JJJJJJ_("123");  // Just to see what the issue is lol.
+            JOJODEBUG_LOG_ACTION("asd");
             assert(ptr != nullptr, "Ptr from successful pop should not be null.");
         }
         else
@@ -74,7 +74,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
             (reserved_idx_base + i) % k_pointer_buffer_indices
         };
         m_pointer_buffer[write_idx] = reinterpret_cast<void*>(jobs[i]);
-        JOJODEBUG_LOG_ACTION('e');
+        JOJODEBUG_LOG_ACTION("123");
     }
 
     // Update queue size (in order) once write has finished.
@@ -93,7 +93,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
         {
             // Successfully able to update queue size now.
             m_queue_size += jobs.size();
-            JOJODEBUG_LOG_ACTION('u');
+            JOJODEBUG_LOG_ACTION("qwe");
             break;
         }
         assert(i != k_weak_check_loops - 1);  // @TODO: this might be good to be an error message in release.

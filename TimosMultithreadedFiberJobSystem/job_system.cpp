@@ -5,6 +5,7 @@
 #include <memory>
 #include <thread>
 #include "job_ifc.h"
+#include "tester_tester_mo_bester.h"
 
 
 Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sources)
@@ -22,8 +23,10 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
     }
 }
 
-/* STATIC */ void Job_system::thread_run_fn(std::vector<Job_source*> job_sources_to_check, Job_queue* job_queue)
+/* STATIC */ void Job_system::thread_run_fn(size_t thread_idx, std::vector<Job_source*> job_sources_to_check, Job_queue* job_queue)
 {
+    JOJODEBUG_REGISTER_THREAD(thread_idx);
+
     while (s_is_running)
     {
         // Check job source(s) heartbeat.
@@ -57,10 +60,12 @@ bool Job_system::run()
     // Spin up multithreading equal to all threads requested.
     std::vector<std::thread> threads;
     threads.reserve(m_thread_construct_datas.size());
-    for (auto& tcd : m_thread_construct_datas)
+    for (size_t i = 0; i < m_thread_construct_datas.size(); i++)
     {
+        auto& tcd{ m_thread_construct_datas[i] };
         threads.emplace_back(
             Job_system::thread_run_fn,
+            i,
             tcd.responsible_job_sources,
             job_queue.get()
         );

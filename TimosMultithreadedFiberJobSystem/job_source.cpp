@@ -16,7 +16,7 @@ std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thr
     {
         // Go fetch jobs.
         jobs = fetch_next_jobs_callback();
-        JOJODEBUG_LOG_ACTION('j');
+        JOJODEBUG_LOG_ACTION("!@#");
 
         // @DEBUG
         /*static std::atomic_size_t debug_thingothingo{ 0 };
@@ -39,7 +39,7 @@ void Job_source::notify_one_job_complete__thread_safe()
     uint32_t before_decrement_val =
 #endif
         m_num_jobs_incomplete--;
-    JOJODEBUG_LOG_ACTION('n');
+    JOJODEBUG_LOG_ACTION("zxc");
 #if _DEBUG
     assert(before_decrement_val != 0);
 #endif

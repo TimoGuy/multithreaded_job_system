@@ -244,6 +244,10 @@ Goal for a single job source:
 1. OKAYU UPDATE!!! I figured out the `front_idx` and `back_idx` were just getting off in the ring buffer. After fixing those issues it works great!!!
 
 
+For the issues with multiple job sources:
+1. Mmmmmm it loks like there's no issues with 
+
+
 
 ## Benchmarking with profiler (debug mode).
 
