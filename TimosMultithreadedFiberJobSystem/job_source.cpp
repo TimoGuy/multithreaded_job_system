@@ -28,7 +28,7 @@ std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thr
             std::cout << "Added jobs: " << debug_tt_copy << std::endl;*/
 
         // Mark number incomplete jobs (allows another thread to enter this block again).
-        m_num_jobs_incomplete = static_cast<uint32_t>(jobs.size());  // @TODO: @THEA: I guess this value isn't getting written to fast enough??? Figure out why `notify_one_job_complete__thread_safe()` keeps getting run.
+        m_num_jobs_incomplete = static_cast<uint32_t>(jobs.size());
     }
 
     return jobs;
@@ -44,6 +44,6 @@ void Job_source::notify_one_job_complete__thread_safe()
         m_num_jobs_incomplete--;
     JOJODEBUG_LOG_ACTION("zxc");
 #if _DEBUG
-    assert(before_decrement_val != 0);
+    assert(before_decrement_val != 0);  // This assert is MVP assert lol.
 #endif
 }

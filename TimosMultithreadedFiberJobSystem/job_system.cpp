@@ -49,7 +49,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
         if (checking_job_buffer_ptr == nullptr)
         {
             // Reserve new job buffer position.
-            checking_job_buffer_ptr = &job_queue->pop_front_buffer_ptr__thread_safe();
+            checking_job_buffer_ptr = &job_queue->reserve_front_buffer_ptr__thread_safe();
             assert(checking_job_buffer_ptr != nullptr);
         }
 
@@ -58,7 +58,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
         //        handle to get executed multiple times (Though this is very
         //        rare and increasing the job queue buffer size would proably
         //        also reduce the chances of this happening. But CAS is there to
-        //        be airtight).  -Thea 2024/12/21
+        //        keep execution airtight).  -Thea 2024/12/21
         void* job_handle{ *checking_job_buffer_ptr };
         if (job_handle != nullptr &&
             checking_job_buffer_ptr->compare_exchange_weak(job_handle, nullptr))
@@ -66,7 +66,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
             // Execute job handle.
             reinterpret_cast<Job_ifc*>(job_handle)->execute_and_record_completion__thread_safe();
 
-            // Clear job handle and job buffer position.
+            // Clear job buffer position.
             checking_job_buffer_ptr = nullptr;
         }
     }
