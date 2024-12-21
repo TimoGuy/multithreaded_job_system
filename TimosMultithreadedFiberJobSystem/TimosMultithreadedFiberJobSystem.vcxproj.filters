@@ -15,46 +15,64 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TesterMain.cpp">
+    <ClCompile Include="job_ifc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Job.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SimpleJob.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JobManager.cpp">
+    <ClCompile Include="simple_job.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tracy\TracyClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="JobStatistics.cpp">
+    <ClCompile Include="job_source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="job_queue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="job_system.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="example_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simple_job_source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tester_tester_mo_bester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Job.h">
+    <ClInclude Include="job_ifc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleJob.h">
+    <ClInclude Include="simple_job.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="JobGroupType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JobManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TracyImpl.h">
+    <ClInclude Include="tracy_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tracy\tracy\Tracy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="JobStatistics.h">
+    <ClInclude Include="job_source.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="job_queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="job_system.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simple_job_source.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tester_tester_mo_bester.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="v3_plans.md" />
   </ItemGroup>
 </Project>
