@@ -11,8 +11,8 @@ int32_t main()
     ZoneScoped;
 
     uint32_t num_threads{
-        //std::thread::hardware_concurrency()
-        2
+        std::thread::hardware_concurrency()
+        //16
     };
 
     Simple_job_source simple_js;
@@ -23,8 +23,8 @@ int32_t main()
     std::vector<Job_source*> job_sources{
         &simple_js,
         &simple_js2,
-        //&simple_js3,
-        //&simple_js4,
+        &simple_js3,
+        &simple_js4,
     };
 
     Job_system job_system{

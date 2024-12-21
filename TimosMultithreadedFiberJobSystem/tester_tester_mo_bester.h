@@ -1,6 +1,6 @@
 #pragma once
 
-#define USE_JOJODEBUG 1
+#define USE_JOJODEBUG 0
 #if USE_JOJODEBUG
 #include <atomic>
 #include <thread>

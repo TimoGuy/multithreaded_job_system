@@ -248,6 +248,12 @@ For the issues with multiple job sources:
 1. Mmmmmm it loks like there's no issues with 
 
 
+FOR NEW DESIGN
+1. Just have a "reserve next read position in queue" to the core, so now pop front and push back are just completely separate.
+1. When the core that has reserved a read position, then do a CAS to see if a job has been populated. If it is, then get it and write it back to nullptr.
+1. Then after processing the job, decrement the job source count and then reserve the next read position.
+1. ON THE OTHER HAND, for each thread assigned a job source tracking thing, keep doing the same thing. Just add more onto the queue as the time keeps moving on.
+
 
 ## Benchmarking with profiler (debug mode).
 
