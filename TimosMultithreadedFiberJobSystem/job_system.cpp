@@ -59,9 +59,9 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
         //        rare and increasing the job queue buffer size would proably
         //        also reduce the chances of this happening. But CAS is there to
         //        keep execution airtight).  -Thea 2024/12/21
-        void* job_handle{ *checking_job_buffer_ptr };
+        void* job_handle{ checking_job_buffer_ptr->load(std::memory_order_relaxed) };
         if (job_handle != nullptr &&
-            checking_job_buffer_ptr->compare_exchange_weak(job_handle, nullptr))
+            checking_job_buffer_ptr->compare_exchange_weak(job_handle, nullptr, std::memory_order_relaxed))
         {
             // Execute job handle.
             reinterpret_cast<Job_ifc*>(job_handle)->execute_and_record_completion__thread_safe();

@@ -18,7 +18,7 @@ std::atomic<void*>& Job_queue::reserve_front_buffer_ptr__thread_safe()
     //        with integer wrapping, but using a CAS to check the contents of
     //        the atomic variable, it prevents the job handle from getting
     //        executed multiple times.  -Thea 2024/12/21
-    return m_pointer_buffer[m_front_idx++];
+    return m_pointer_buffer[m_front_idx++];  // @NOTE: Idk if relaxed fetch-add would be faster or interlocked increment. It probably doesn't matter haha  -Thea 2025/1/2
 }
 
 bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
@@ -27,7 +27,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
 
     // Reserve write amount.
     looping_numeric_t reserved_idx_base{
-        static_cast<looping_numeric_t>((m_reservation_back_idx += jobs.size()) - jobs.size())
+        m_reservation_back_idx.fetch_add(jobs.size(), std::memory_order_relaxed)
     };
 
     // Write.
@@ -39,7 +39,10 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
         size_t write_idx{
             (reserved_idx_base + i) % k_pointer_buffer_indices
         };
-        m_pointer_buffer[write_idx] = reinterpret_cast<void*>(jobs[i]);
+        m_pointer_buffer[write_idx].store(
+            reinterpret_cast<void*>(jobs[i]),
+            std::memory_order_relaxed
+        );
         JOJODEBUG_LOG_ACTION("123");
     }
 
