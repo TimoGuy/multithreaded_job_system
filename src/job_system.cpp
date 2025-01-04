@@ -5,7 +5,6 @@
 #include <memory>
 #include <thread>
 #include "job_ifc.h"
-#include "tester_tester_mo_bester.h"
 
 
 Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sources)

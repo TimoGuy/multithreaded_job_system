@@ -1,9 +1,5 @@
 #include "job_queue.h"
 
-#include <cassert>
-#include <iostream>
-#include "tester_tester_mo_bester.h"
-
 
 std::atomic<void*>& Job_queue::reserve_front_buffer_ptr__thread_safe()
 {
