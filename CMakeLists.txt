@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(multithreaded_job_system_component
+project(multithreaded_job_system
     VERSION 0.3.0
     LANGUAGES CXX
 )
@@ -17,10 +17,10 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
-# Static library build for `multithreaded_job_system`
-add_library(multithreaded_job_system STATIC)
+# Static library build for `multithreaded_job_system_component`
+add_library(multithreaded_job_system_component STATIC)
 
-target_include_directories(multithreaded_job_system
+target_include_directories(multithreaded_job_system_component
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
@@ -28,7 +28,7 @@ target_include_directories(multithreaded_job_system
         # ${CMAKE_CURRENT_SOURCE_DIR}/src/example
 )
 
-target_sources(multithreaded_job_system
+target_sources(multithreaded_job_system_component
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include/multithreaded_job_system_public.h
     PRIVATE
