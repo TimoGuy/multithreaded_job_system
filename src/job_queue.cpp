@@ -41,7 +41,6 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
             reinterpret_cast<void*>(jobs[i]),
             std::memory_order_relaxed
         );
-        JOJODEBUG_LOG_ACTION("123");
     }
 
     // @TODO: Add debug level check that the size isn't getting too large to

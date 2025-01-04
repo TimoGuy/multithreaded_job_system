@@ -25,8 +25,6 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
 
 /* STATIC */ void Job_system::thread_run_fn(size_t thread_idx, std::vector<Job_source*> job_sources_to_check, Job_queue* job_queue)
 {
-    JOJODEBUG_REGISTER_THREAD(thread_idx);
-
     std::atomic<void*>* checking_job_buffer_ptr{ nullptr };
 
     while (s_is_running)
