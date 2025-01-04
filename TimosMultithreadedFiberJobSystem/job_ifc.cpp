@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include "job_source.h"
-#include "tracy_impl.h"
 
 
 Job_ifc::Job_ifc(std::string&& name, Job_source& source)
@@ -21,7 +20,6 @@ int32_t Job_ifc::execute_and_record_completion__thread_safe()
 
 std::string Job_ifc::toString() const
 {
-    ZoneScoped;
     std::stringstream sstr;
     sstr << "Job #" << m_job_id << ":\tname=\"" << m_name << "\"";
     return sstr.str();

@@ -21,9 +21,6 @@
     <ClCompile Include="simple_job.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tracy\TracyClient.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="job_source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,12 +45,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="simple_job.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tracy_impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tracy\tracy\Tracy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="job_source.h">

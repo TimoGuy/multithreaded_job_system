@@ -3,13 +3,10 @@
 #include <cassert>
 #include <iostream>
 #include "tester_tester_mo_bester.h"
-#include "tracy_impl.h"
 
 
 std::atomic<void*>& Job_queue::reserve_front_buffer_ptr__thread_safe()
 {
-    ZoneScoped;
-
     // Just immediately get the front buffer position without worrying about
     // size, if the contents are null, etc. Because, this reference will be
     // constantly checked until the contents are not null and result in an
@@ -23,11 +20,12 @@ std::atomic<void*>& Job_queue::reserve_front_buffer_ptr__thread_safe()
 
 bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
 {
-    ZoneScoped;
-
     // Reserve write amount.
     looping_numeric_t reserved_idx_base{
-        m_reservation_back_idx.fetch_add(jobs.size(), std::memory_order_relaxed)
+        m_reservation_back_idx.fetch_add(
+            static_cast<looping_numeric_t>(jobs.size()),
+            std::memory_order_relaxed
+        )
     };
 
     // Write.
