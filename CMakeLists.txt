@@ -17,10 +17,10 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
-# Static library build for `multithreaded_job_system_component`
-add_library(multithreaded_job_system_component STATIC)
+# Static library build.
+add_library(${PROJECT_NAME} STATIC)
 
-target_include_directories(multithreaded_job_system_component
+target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
@@ -28,7 +28,7 @@ target_include_directories(multithreaded_job_system_component
         # ${CMAKE_CURRENT_SOURCE_DIR}/src/example
 )
 
-target_sources(multithreaded_job_system_component
+target_sources(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include/multithreaded_job_system_public.h
     PRIVATE
