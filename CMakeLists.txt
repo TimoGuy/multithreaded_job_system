@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.28)
 
+# Project
+if(DEFINED multithreaded_job_system_GUARD)
+    if(NOT multithreaded_job_system_GUARD STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
+        return() # Project has been already included by someone else
+    endif()
+else()
+    set(multithreaded_job_system_GUARD ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "multithreaded_job_system guard")
+endif()
 project(multithreaded_job_system
     VERSION 0.3.0
     LANGUAGES CXX
