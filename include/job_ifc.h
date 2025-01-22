@@ -24,4 +24,3 @@ private:
     std::string m_name;
     Job_source& m_source;
 };
-

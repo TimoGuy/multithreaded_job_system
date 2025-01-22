@@ -35,6 +35,8 @@ add_library(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/job_source.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/job_system.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/job_system.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/job_timekeeper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/job_timekeeper.h
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/example/example_main.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/example/simple_job_source.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/example/simple_job_source.h
