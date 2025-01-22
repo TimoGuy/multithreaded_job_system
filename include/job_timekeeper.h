@@ -15,7 +15,7 @@ using duration_t = std::chrono::duration<double_t>;
 class Job_timekeeper
 {
 public:
-    Job_timekeeper(uint32_t hertz, bool ignore_time_overflow);
+    Job_timekeeper(uint32_t hertz, bool print_error_on_time_overflow);
 
     bool check_timeout_and_reset();
 
