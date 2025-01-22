@@ -18,7 +18,7 @@ int32_t Job_ifc::execute_and_record_completion__thread_safe()
     return status;
 }
 
-std::string Job_ifc::toString() const
+std::string Job_ifc::to_string() const
 {
     std::stringstream sstr;
     sstr << "Job #" << m_job_id << ":\tname=\"" << m_name << "\"";
