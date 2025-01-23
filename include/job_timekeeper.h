@@ -4,7 +4,7 @@
 
 #if _WIN64
 #include <chrono>
-using clock_t = std::chrono::high_resolution_clock;
+using timing_clock_t = std::chrono::high_resolution_clock;
 using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double_t>>;
 using duration_t = std::chrono::duration<double_t>;
 #else
@@ -22,7 +22,7 @@ public:
 private:
     inline time_point_t get_time_now()
     {
-        return clock_t::now();
+        return timing_clock_t::now();
     }
 
     duration_t m_interval_ms;
