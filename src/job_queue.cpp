@@ -1,5 +1,7 @@
 #include "job_queue.h"
 
+#include <cassert>
+
 
 std::atomic<void*>& Job_queue::reserve_front_buffer_ptr__thread_safe()
 {
@@ -33,6 +35,10 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
         size_t write_idx{
             (reserved_idx_base + i) % k_pointer_buffer_indices
         };
+
+        // Assert that job to insert is a valid job.
+        assert(jobs[i] != nullptr);
+
         m_pointer_buffer[write_idx].store(
             reinterpret_cast<void*>(jobs[i]),
             std::memory_order_relaxed
