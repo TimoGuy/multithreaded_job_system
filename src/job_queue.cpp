@@ -43,6 +43,7 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
             reinterpret_cast<void*>(jobs[i]),
             std::memory_order_relaxed
         );
+        m_pointer_buffer[write_idx].notify_all();
     }
 
     // @TODO: Add debug level check that the size isn't getting too large to
