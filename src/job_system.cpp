@@ -34,9 +34,21 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
             // @NOTE: Priority is to get the job sources checked in a timely manner.
             reserve_and_execute_job = false;
 
+            bool any_job_sources_running{ false };
             for (auto job_src_ptr : all_job_sources)
             {
-                auto new_jobs{
+                if (job_src_ptr->is_running())
+                {
+                    // Mark that >0 job sources are running.
+                    any_job_sources_running = true;
+                }
+                else
+                {
+                    // Skip job source since it's not running.
+                    continue;
+                }
+
+                std::vector<Job_ifc*> new_jobs{
                     job_src_ptr->fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()
                 };
                 if (!new_jobs.empty())
@@ -47,10 +59,24 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
                     }
             }
 
-            // @NOTE: if you can figure out how to re-arch the system to allow for single system cpus or with this kind of thing.,,,, then go ahead and do it.
-            // // Only execute jobs if all other job runners are busy.
-            // if (busy_job_sources_count == (num_threads - 1))
-            //     reserve_and_execute_job = true;
+            if (!any_job_sources_running)
+            {
+                // Set job system as not running if no sources are running.
+                s_is_running = false;
+                // @TODO: in order to get the whole thing to shut down, there
+                // needs to be a way to wake the other sleeping threads.
+                    // @IDEA: send all the other threads a bogus empty job so that all the other threads get sent the job.
+                    // @TODO: START HEREEEEE!!!!!!!!
+            }
+            else
+            {
+                ///////////// @NOTE: if you can figure out how to re-arch the system to allow for single system cpus or with this kind of thing.,,,, then go ahead and do it.
+                ///////////// // Only execute jobs if all other job runners are busy.
+                ///////////// @TODO: @THEA: GET THE FIRST THREAD ALSO DOING STUFF SO THAT THIS CAN BE RUN ON SINGLE THREADSSSSSS~!!!!!!! AND SO THAT THE JOB SOURCE CHECKING THREAD CAN JOIN IN ON THE WORK OH WORKIE WORK.
+                ///////////if (busy_job_sources_count == (num_threads - 1))
+                ///////////    // reserve_and_execute_job = true;
+                ///////////    std::cout << "SEND OUT THE THEA" << std::endl;
+            }
         }
 
         // Reserve and execute a job.
