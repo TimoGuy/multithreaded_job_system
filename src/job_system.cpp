@@ -63,10 +63,10 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
             {
                 // Set job system as not running if no sources are running.
                 s_is_running = false;
-                // @TODO: in order to get the whole thing to shut down, there
-                // needs to be a way to wake the other sleeping threads.
-                    // @IDEA: send all the other threads a bogus empty job so that all the other threads get sent the job.
-                    // @TODO: START HEREEEEE!!!!!!!!
+
+                // Force job queue to awaken all job runners for shutting down.
+                job_queue->flush_for_shutdown__thread_safe();
+                
             }
             else
             {
@@ -98,7 +98,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
             //        keep execution airtight).  -Thea 2024/12/21
             checking_job_buffer_ptr->wait(nullptr, std::memory_order_seq_cst);
             void* job_handle{ checking_job_buffer_ptr->load(std::memory_order_seq_cst) };
-            if (job_handle != nullptr)
+            if (Job_queue::check_if_job_is_valid__thread_safe(job_handle))
             {
                 // Only execute job once, but guarantee job has been executed.
                 // (in case if 2 threads have the same position reserved and contend)

@@ -52,3 +52,22 @@ bool Job_queue::append_jobs_back__thread_safe(std::vector<Job_ifc*> jobs)
     //        Could consider copying the pattern of `pop_front...()`
     return true;
 }
+
+void Job_queue::flush_for_shutdown__thread_safe()
+{
+    // Fill whole entire job queue with bogus jobs so that runners
+    // waiting for a job to fill in will detect a job incoming.
+    // @NOTE: if you could just assign bogus jobs to jobs that are being waited for
+    //        that would be a lot more efficient I'm sure. But, this is good for now.  -Thea 2025/01/28
+    void* bogus_job{
+        reinterpret_cast<void*>(const_cast<uint8_t*>(&k_some_byte_in_static_memory))
+    };
+
+    for (size_t i = 0; i < k_pointer_buffer_indices; i++)
+    {
+        m_pointer_buffer[i].store(bogus_job);
+        m_pointer_buffer[i].notify_all();
+    }
+}
+
+
