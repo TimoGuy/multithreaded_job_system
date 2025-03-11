@@ -11,6 +11,7 @@ class Job_ifc
 public:
     Job_ifc(std::string&& name, Job_source& source, uint32_t thread_key = 0);
 
+    uint32_t get_assigned_thread_idx();
     int32_t execute_and_record_completion__thread_safe();
     std::string to_string() const;
 

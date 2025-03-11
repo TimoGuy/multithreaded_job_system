@@ -5,6 +5,7 @@
 #include <memory>
 #include <thread>
 #include "job_ifc.h"
+#include "timing_reporter_public.h"
 
 
 Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sources)
@@ -18,11 +19,12 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
 /* STATIC */ void Job_system::thread_run_fn(size_t thread_idx,
                                             uint16_t num_threads,
                                             std::vector<Job_source*>& all_job_sources,
-                                            Job_queue* job_queue,
+                                            std::vector<Job_queue*>& job_queues,
                                             std::atomic_uint16_t& busy_job_sources_count)
 {
     assert(num_threads > 1);  // @NOTE: for now, just require at least 2 threads.... idk how to re-arch this to allow for single threaded job systems.
     std::atomic<void*>* checking_job_buffer_ptr{ nullptr };
+    uint16_t round_robin_idx{ 0 };
 
     while (s_is_running)
     {
@@ -31,6 +33,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
         // Check all job sources' for new jobs.
         if (thread_idx == 0)  // Only if first thread.
         {
+            TIMING_REPORT_START(thread0_stuff);
             // @NOTE: Priority is to get the job sources checked in a timely manner.
             reserve_and_execute_job = false;
 
@@ -51,12 +54,44 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
                 std::vector<Job_ifc*> new_jobs{
                     job_src_ptr->fetch_next_job_batch_if_all_jobs_complete__thread_safe_weak()
                 };
+
                 if (!new_jobs.empty())
-                    if (!job_queue->append_jobs_back__thread_safe(new_jobs))
+                {
+                    uint32_t num_buckets{ static_cast<uint32_t>(num_threads - 1) };
+                    uint32_t bucket_capacity{
+                        static_cast<uint32_t>(new_jobs.size() / num_buckets + 1) };
+
+                    std::vector<std::vector<Job_ifc*>> bucketed_jobs;
+                    bucketed_jobs.resize(num_buckets);
+
+                    for (auto& bucket : bucketed_jobs)
+                        bucket.reserve(bucket_capacity);
+
+                    for (size_t i = 0; i < new_jobs.size(); i++)
                     {
-                        std::cerr << "ERROR: appending jobs to job queue failed" << std::endl;
-                        assert(false);
+                        auto jobs{ new_jobs[i] };
+                        auto assigned_thread_idx{ jobs->get_assigned_thread_idx() };
+                        if (assigned_thread_idx == 0)
+                        {
+                            // Assign job to any thread; use round robin.
+                            // @NOTE: Avoid 0th thread.
+                            bucketed_jobs[round_robin_idx].emplace_back(new_jobs[i]);
+                            round_robin_idx = (round_robin_idx + 1) % num_buckets;
+                        }
+                        else
+                        {
+                            // Assign job to specific thread.
+                            bucketed_jobs[assigned_thread_idx].emplace_back(new_jobs[i]);
+                        }
                     }
+
+                    for (size_t i = 0; i < num_buckets; i++)
+                        if (!job_queues[i + 1]->append_jobs_back__thread_safe(bucketed_jobs[i]))
+                        {
+                            std::cerr << "ERROR: appending jobs to job queue failed" << std::endl;
+                            assert(false);
+                        }
+                }
             }
 
             if (!any_job_sources_running)
@@ -65,8 +100,8 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
                 s_is_running = false;
 
                 // Force job queue to awaken all job runners for shutting down.
-                job_queue->flush_for_shutdown__thread_safe();
-                
+                for (auto job_queue : job_queues)
+                    job_queue->flush_for_shutdown__thread_safe();
             }
             else
             {
@@ -77,6 +112,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
                 ///////////    // reserve_and_execute_job = true;
                 ///////////    std::cout << "SEND OUT THE THEA" << std::endl;
             }
+            TIMING_REPORT_END_AND_PRINT(thread0_stuff, "Thread 0 job allocation: ");
         }
 
         // Reserve and execute a job.
@@ -86,7 +122,8 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
             if (checking_job_buffer_ptr == nullptr)
             {
                 // Reserve new job buffer position.
-                checking_job_buffer_ptr = &job_queue->reserve_front_buffer_ptr__thread_safe();
+                checking_job_buffer_ptr =
+                    &job_queues[thread_idx]->reserve_front_buffer_ptr__thread_safe();
                 assert(checking_job_buffer_ptr != nullptr);
             }
 
@@ -121,9 +158,17 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
 
 bool Job_system::run()
 {
-    std::unique_ptr<Job_queue> job_queue{
-        std::make_unique<Job_queue>()
-    };
+    // Create queues.
+    std::vector<std::unique_ptr<Job_queue>> job_queues;
+    job_queues.reserve(m_num_threads);
+    std::vector<Job_queue*> job_queue_ptrs;
+    job_queue_ptrs.reserve(m_num_threads);
+
+    for (size_t i = 0; i < m_num_threads; i++)
+    {
+        job_queues.emplace_back(std::make_unique<Job_queue>());
+        job_queue_ptrs.emplace_back(job_queues[i].get());
+    }
 
     // Spin up multithreading equal to all threads requested.
     std::vector<std::thread> threads;
@@ -135,7 +180,7 @@ bool Job_system::run()
             i,
             m_num_threads,
             std::ref(m_job_sources),
-            job_queue.get(),
+            std::ref(job_queue_ptrs),
             std::ref(m_busy_job_sources_count)
         );
     }

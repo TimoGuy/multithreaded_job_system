@@ -60,6 +60,11 @@ Job_ifc::Job_ifc(std::string&& name, Job_source& source, uint32_t thread_key /*=
     m_thread_idx = found_idx;
 }
 
+uint32_t Job_ifc::get_assigned_thread_idx()
+{
+    return m_thread_idx;
+}
+
 int32_t Job_ifc::execute_and_record_completion__thread_safe()
 {
     // Now that job execution has started, thread keys are not allowed anymore.
