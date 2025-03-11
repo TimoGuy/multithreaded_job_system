@@ -57,6 +57,7 @@ Job_system::Job_system(uint32_t num_threads, std::vector<Job_source*>&& job_sour
 
                 if (!new_jobs.empty())
                 {
+                    // @TODO: @HACKY: @INCOMPLETE: The below vv is very very hacky. I wanna be able to have all jobs run on all cores.
                     uint32_t num_buckets{ static_cast<uint32_t>(num_threads - 1) };
                     uint32_t bucket_capacity{
                         static_cast<uint32_t>(new_jobs.size() / num_buckets + 1) };
