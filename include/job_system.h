@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <vector>
 #include "job_queue.h"
 #include "job_source.h"
@@ -25,7 +26,8 @@ private:
                               uint16_t num_threads,
                               std::vector<Job_source*>& all_job_sources,
                               std::vector<Job_queue*>& job_queues,
-                              std::atomic_uint16_t& busy_job_sources_count);
+                              std::atomic_uint16_t& busy_job_sources_count,
+                              std::mutex& feed_job_queues_mutex);
 
     uint16_t m_num_threads;
     std::vector<Job_source*> m_job_sources;

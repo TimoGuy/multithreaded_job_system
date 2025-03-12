@@ -57,12 +57,12 @@ Job_ifc::Job_ifc(std::string&& name, Job_source& source, uint32_t thread_key /*=
         assert(s_key_registration.size() - 1 ==
             Job_ifc_data::s_thread_mutexes.size());
     }
-    m_thread_idx = found_idx;
+    m_thread_key_idx = found_idx;
 }
 
-uint32_t Job_ifc::get_assigned_thread_idx()
+uint32_t Job_ifc::get_thread_key_idx()
 {
-    return m_thread_idx;
+    return m_thread_key_idx;
 }
 
 int32_t Job_ifc::execute_and_record_completion__thread_safe()
@@ -72,8 +72,8 @@ int32_t Job_ifc::execute_and_record_completion__thread_safe()
 
     // Execute job, locking the thread if desired.
     auto mutex_ptr{
-        (m_thread_idx > 0 ?
-            Job_ifc_data::s_thread_mutexes[m_thread_idx - 1] :
+        (m_thread_key_idx > 0 ?
+            Job_ifc_data::s_thread_mutexes[m_thread_key_idx - 1] :
             nullptr) };
 
     if (mutex_ptr) mutex_ptr->lock();
