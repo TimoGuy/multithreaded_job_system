@@ -26,6 +26,13 @@ std::vector<Job_ifc*> Job_source::fetch_next_job_batch_if_all_jobs_complete__thr
         }
         else
         {
+#if _DEBUG
+            for (auto job : return_data.jobs)
+            {
+                assert(job != nullptr);
+            }
+#endif  // _DEBUG
+
             // Mark number incomplete jobs (allows another thread to enter this block again).
             m_num_jobs_incomplete = static_cast<uint32_t>(return_data.jobs.size());
         }
